@@ -1,0 +1,7 @@
+[package]
+name = "ants"
+version = "0.1.0"
+authors = ["Joren Van Onder <joren@jvo.sh>"]
+edition = "2018"
+
+[dependencies]
