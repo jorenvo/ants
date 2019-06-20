@@ -1,123 +1,74 @@
 #![deny(clippy::pedantic)]
 #![allow(dead_code)]
+use std::collections::HashMap;
 use std::fmt;
 
-#[derive(Default)]
-struct Tile<'a> {
-    entities: Vec<&'a Placeable>,
+enum EntityType {
+    Ant,
 }
 
-impl<'a> fmt::Display for Tile<'a> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "({})", self.entities.len())
-    }
-}
-
-/* Things that can be placed on a tile */
-trait Placeable {
-    fn get_pos(&self) -> (u32, u32);
-    fn set_pos(&mut self, x: u32, y: u32);
-}
-
-trait AutoMove {
-    fn get_new_pos(&self) -> (u32, u32);
-}
-
-#[derive(Debug, Default)]
-struct Ant {
+struct PositionComponent {
     x: u32,
     y: u32,
 }
 
-impl Placeable for Ant {
-    fn get_pos(&self) -> (u32, u32) {
-        (self.x, self.y)
-    }
+type EntityIndex = usize;
 
-    fn set_pos(&mut self, x: u32, y: u32) {
-        self.x = x;
-        self.y = y;
-    }
+struct WorldState {
+    new_index: EntityIndex,
+    positions: HashMap<EntityIndex, PositionComponent>,
+    ants: Vec<EntityIndex>,
 }
 
-impl AutoMove for Ant {
-    fn get_new_pos(&self) -> (u32, u32) {
-        (0, 0)
-    }
-}
-
-struct TileSet<'a> {
-    columns: usize,
-    tiles: Vec<Tile<'a>>,
-}
-
-impl<'a> TileSet<'a> {
-    fn init(rows: usize, columns: usize) -> Self {
-        let nr_tiles = rows * columns;
-        let mut tiles: Vec<Tile> = Vec::with_capacity(nr_tiles);
-        for _ in 0..(nr_tiles) {
-            tiles.push(Tile::default());
-        }
-
+impl WorldState {
+    fn init() -> Self {
         Self {
-            columns: columns,
-            tiles: tiles,
+            new_index: 0,
+            positions: HashMap::new(),
+            ants: Vec::new(),
         }
     }
 
-    fn convert_xy(&self, x: usize, y: usize) -> usize {
-        y * self.columns + x
+    fn get_new_index(&mut self) -> EntityIndex {
+        self.new_index += 1;
+        self.new_index - 1
     }
 
-    fn add_placeable(&mut self, x: usize, y: usize, p: &'a Placeable) {
-        let index = self.convert_xy(x, y);
-        self.tiles[index].entities.push(p);
+    fn create_entity(&mut self, entity_type: &EntityType) -> EntityIndex {
+        let index = self.get_new_index();
+        match entity_type {
+            EntityType::Ant => {
+                self.positions
+                    .insert(index, PositionComponent { x: 0, y: 0 });
+                self.ants.push(index);
+            }
+        }
+
+        index
+    }
+
+    fn move_entity(&mut self, index: EntityIndex, position: PositionComponent) {
+        self.positions.insert(index, position);
+    }
+
+    fn get_position(&self, i: &EntityIndex) -> Option<&PositionComponent> {
+        self.positions.get(i)
     }
 }
 
-impl<'a> fmt::Display for TileSet<'a> {
+impl fmt::Display for WorldState {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        for (index, tile) in self.tiles.iter().enumerate() {
-            if index > 0 && index % self.columns == 0 {
-                write!(f, "\n")?;
-            }
-            write!(f, "{} ", tile)?;
+        for ant_id in &self.ants {
+            let pos = &self.positions[ant_id];
+            write!(f, "ant (ID: {}) at {}, {}", ant_id, pos.x, pos.y)?;
         }
 
         Ok(())
     }
 }
 
-// fn move_placeable(tile_set: &mut TileSet, placeables: Vec<&Placeable>) {
-//     // clear entities
-//     for tile in &mut tile_set.tiles {
-//         tile.entities.clear();
-//     }
-
-//     for p in placeables {
-//         let (x, y) = p.get_pos();
-//         println!("{} {}", x, y);
-//         tile_set.add_placeable(x as usize, y as usize, p);
-//     }
-// }
-
 fn main() {
-    const WORLD_SIZE: usize = 2;
-    let mut tile_set = TileSet::init(WORLD_SIZE, WORLD_SIZE);
-
-    let mut ants: Vec<Ant> = Vec::new();
-    for _ in 0..8 {
-        ants.push(Ant::default());
-    }
-
-    let some_tile = &mut tile_set.tiles[0];
-    some_tile.entities.push(&ants[0]);
-    let my_ant = some_tile.entities.pop();
-
-    // move_placeable(
-    //     &mut tile_set,
-    //     ants.iter().map(|a| a as &Placeable).collect(),
-    // );
-
-    // println!("{}", tile_set);
+    let mut state = WorldState::init();
+    state.create_entity(&EntityType::Ant);
+    println!("{}", state);
 }
