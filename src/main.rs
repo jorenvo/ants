@@ -1,5 +1,7 @@
 #![deny(clippy::pedantic)]
-#![allow(dead_code)]
+extern crate rand;
+
+use rand::Rng;
 use std::collections::HashMap;
 use std::fmt;
 
@@ -47,20 +49,23 @@ impl WorldState {
         index
     }
 
-    fn move_entity(&mut self, index: EntityIndex, position: PositionComponent) {
-        self.positions.insert(index, position);
-    }
-
-    fn get_position(&self, i: &EntityIndex) -> Option<&PositionComponent> {
-        self.positions.get(i)
+    fn move_entities(&mut self) {
+        let mut rng = rand::thread_rng();
+        for ant_id in &self.ants {
+            if let Some(pos) = self.positions.get_mut(ant_id) {
+                pos.x += rng.gen_range(0, 10);
+                pos.y += rng.gen_range(0, 10);
+            }
+        }
     }
 }
 
 impl fmt::Display for WorldState {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        writeln!(f, "--- ANTS ---")?;
         for ant_id in &self.ants {
             let pos = &self.positions[ant_id];
-            write!(f, "ant (ID: {}) at {}, {}", ant_id, pos.x, pos.y)?;
+            writeln!(f, "id {} at {}, {}", ant_id, pos.x, pos.y)?;
         }
 
         Ok(())
@@ -69,6 +74,10 @@ impl fmt::Display for WorldState {
 
 fn main() {
     let mut state = WorldState::init();
-    state.create_entity(&EntityType::Ant);
+    for _ in 0..4 {
+        state.create_entity(&EntityType::Ant);
+    }
+    state.move_entities();
+
     println!("{}", state);
 }
