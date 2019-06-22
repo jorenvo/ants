@@ -9,6 +9,20 @@ enum EntityType {
     Ant,
 }
 
+struct AntEntity {
+    id: EntityIndex,
+}
+
+impl AntEntity {
+    fn move_(&self, state: &mut WorldState) {
+        let mut rng = rand::thread_rng();
+        if let Some(pos) = state.positions.get_mut(&self.id) {
+            pos.x += rng.gen_range(0, 10);
+            pos.y += rng.gen_range(0, 10);
+        }
+    }
+}
+
 struct PositionComponent {
     x: u32,
     y: u32,
@@ -19,7 +33,7 @@ type EntityIndex = usize;
 struct WorldState {
     new_index: EntityIndex,
     positions: HashMap<EntityIndex, PositionComponent>,
-    ants: Vec<EntityIndex>,
+    ants: HashMap<EntityIndex, AntEntity>,
 }
 
 impl WorldState {
@@ -27,7 +41,7 @@ impl WorldState {
         Self {
             new_index: 0,
             positions: HashMap::new(),
-            ants: Vec::new(),
+            ants: HashMap::new(),
         }
     }
 
@@ -42,7 +56,7 @@ impl WorldState {
             EntityType::Ant => {
                 self.positions
                     .insert(index, PositionComponent { x: 0, y: 0 });
-                self.ants.push(index);
+                self.ants.insert(index, AntEntity { id: index });
             }
         }
 
@@ -50,12 +64,8 @@ impl WorldState {
     }
 
     fn move_entities(&mut self) {
-        let mut rng = rand::thread_rng();
-        for ant_id in &self.ants {
-            if let Some(pos) = self.positions.get_mut(ant_id) {
-                pos.x += rng.gen_range(0, 10);
-                pos.y += rng.gen_range(0, 10);
-            }
+        for (ant_id, ant) in &mut self.ants {
+            ant.move_(self);
         }
     }
 }
@@ -63,9 +73,12 @@ impl WorldState {
 impl fmt::Display for WorldState {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         writeln!(f, "--- ANTS ---")?;
-        for ant_id in &self.ants {
-            let pos = &self.positions[ant_id];
-            writeln!(f, "id {} at {}, {}", ant_id, pos.x, pos.y)?;
+        for ant_id in self.ants.keys() {
+            if let Some(pos) = self.positions.get(ant_id) {
+                writeln!(f, "id {} at {}, {}", ant_id, pos.x, pos.y)?;
+            } else {
+                writeln!(f, "id {} has no position!", ant_id)?;
+            }
         }
 
         Ok(())
