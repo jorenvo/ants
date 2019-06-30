@@ -1,9 +1,13 @@
 #![deny(clippy::pedantic)]
 extern crate rand;
 
+mod components;
+
+use components::*;
 use rand::Rng;
 use std::collections::HashMap;
 use std::fmt;
+
 
 #[derive(Clone)]
 enum EntityType {
@@ -11,11 +15,6 @@ enum EntityType {
 }
 
 struct AntEntity {}
-
-struct PositionComponent {
-    x: u32,
-    y: u32,
-}
 
 type EntityIndex = usize;
 
