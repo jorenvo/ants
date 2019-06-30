@@ -1,3 +1,4 @@
+#![allow(unused_variables, dead_code, unused_imports)]
 #![deny(clippy::pedantic)]
 extern crate rand;
 
@@ -5,22 +6,13 @@ use rand::Rng;
 use std::collections::HashMap;
 use std::fmt;
 
+#[derive(Clone)]
 enum EntityType {
     Ant,
 }
 
 struct AntEntity {
     id: EntityIndex,
-}
-
-impl AntEntity {
-    fn move_(&self, state: &mut WorldState) {
-        let mut rng = rand::thread_rng();
-        if let Some(pos) = state.positions.get_mut(&self.id) {
-            pos.x += rng.gen_range(0, 10);
-            pos.y += rng.gen_range(0, 10);
-        }
-    }
 }
 
 struct PositionComponent {
@@ -30,16 +22,19 @@ struct PositionComponent {
 
 type EntityIndex = usize;
 
-struct WorldState {
+struct EntityStore {
     new_index: EntityIndex,
+    types: HashMap<EntityIndex, EntityType>,
     positions: HashMap<EntityIndex, PositionComponent>,
+    // TODO: reverse_positions
     ants: HashMap<EntityIndex, AntEntity>,
 }
 
-impl WorldState {
+impl EntityStore {
     fn init() -> Self {
         Self {
             new_index: 0,
+            types: HashMap::new(),
             positions: HashMap::new(),
             ants: HashMap::new(),
         }
@@ -59,18 +54,13 @@ impl WorldState {
                 self.ants.insert(index, AntEntity { id: index });
             }
         }
+        self.types.insert(index, entity_type.clone());
 
         index
     }
-
-    fn move_entities(&mut self) {
-        for (ant_id, ant) in &mut self.ants {
-            ant.move_(self);
-        }
-    }
 }
 
-impl fmt::Display for WorldState {
+impl fmt::Display for EntityStore {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         writeln!(f, "--- ANTS ---")?;
         for ant_id in self.ants.keys() {
@@ -85,12 +75,37 @@ impl fmt::Display for WorldState {
     }
 }
 
-fn main() {
-    let mut state = WorldState::init();
-    for _ in 0..4 {
-        state.create_entity(&EntityType::Ant);
-    }
-    state.move_entities();
+struct Game {
+    entity_store: EntityStore,
+    rng: rand::rngs::ThreadRng,
+}
 
-    println!("{}", state);
+impl Game {
+    fn move_ants(&mut self) {
+        let ants = &self.entity_store.ants;
+        for (id, ant) in ants {
+            if let Some(pos) = self.entity_store.positions.get_mut(id) {
+                pos.x += self.rng.gen_range(0, 10);
+                pos.y += self.rng.gen_range(0, 10);
+            }
+        }
+    }
+
+    fn move_entities(&mut self) {
+        self.move_ants();
+    }
+}
+
+fn main() {
+    let mut game = Game {
+        entity_store: EntityStore::init(),
+        rng: rand::thread_rng(),
+    };
+    for _ in 0..4 {
+        game.entity_store.create_entity(&EntityType::Ant);
+    }
+
+    game.move_entities();
+
+    println!("{}", game.entity_store);
 }
