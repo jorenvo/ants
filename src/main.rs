@@ -1,4 +1,3 @@
-#![allow(unused_variables, dead_code, unused_imports)]
 #![deny(clippy::pedantic)]
 extern crate rand;
 
@@ -11,9 +10,7 @@ enum EntityType {
     Ant,
 }
 
-struct AntEntity {
-    id: EntityIndex,
-}
+struct AntEntity {}
 
 struct PositionComponent {
     x: u32,
@@ -51,7 +48,7 @@ impl EntityStore {
             EntityType::Ant => {
                 self.positions
                     .insert(index, PositionComponent { x: 0, y: 0 });
-                self.ants.insert(index, AntEntity { id: index });
+                self.ants.insert(index, AntEntity {});
             }
         }
         self.types.insert(index, entity_type.clone());
@@ -83,7 +80,7 @@ struct Game {
 impl Game {
     fn move_ants(&mut self) {
         let ants = &self.entity_store.ants;
-        for (id, ant) in ants {
+        for (id, _) in ants {
             if let Some(pos) = self.entity_store.positions.get_mut(id) {
                 pos.x += self.rng.gen_range(0, 10);
                 pos.y += self.rng.gen_range(0, 10);
