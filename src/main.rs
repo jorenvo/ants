@@ -2,74 +2,10 @@
 extern crate rand;
 
 mod components;
+mod entity_store;
 
-use components::*;
+use entity_store::*;
 use rand::Rng;
-use std::collections::HashMap;
-use std::fmt;
-
-
-#[derive(Clone)]
-enum EntityType {
-    Ant,
-}
-
-struct AntEntity {}
-
-type EntityIndex = usize;
-
-struct EntityStore {
-    new_index: EntityIndex,
-    types: HashMap<EntityIndex, EntityType>,
-    positions: HashMap<EntityIndex, PositionComponent>,
-    // TODO: reverse_positions
-    ants: HashMap<EntityIndex, AntEntity>,
-}
-
-impl EntityStore {
-    fn init() -> Self {
-        Self {
-            new_index: 0,
-            types: HashMap::new(),
-            positions: HashMap::new(),
-            ants: HashMap::new(),
-        }
-    }
-
-    fn get_new_index(&mut self) -> EntityIndex {
-        self.new_index += 1;
-        self.new_index - 1
-    }
-
-    fn create_entity(&mut self, entity_type: &EntityType) -> EntityIndex {
-        let index = self.get_new_index();
-        match entity_type {
-            EntityType::Ant => {
-                self.positions
-                    .insert(index, PositionComponent { x: 0, y: 0 });
-                self.ants.insert(index, AntEntity {});
-            }
-        }
-        self.types.insert(index, entity_type.clone());
-
-        index
-    }
-}
-
-impl fmt::Display for EntityStore {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        writeln!(f, "--- ANTS ---")?;
-        for ant_id in self.ants.keys() {
-            if let Some(pos) = self.positions.get(ant_id) {
-                writeln!(f, "id {} at {}, {}", ant_id, pos.x, pos.y)?;
-            } else {
-                writeln!(f, "id {} has no position!", ant_id)?;
-            }
-        }
-
-        Ok(())
-    }
-}
 
 struct Game {
     entity_store: EntityStore,
