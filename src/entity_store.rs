@@ -49,6 +49,20 @@ impl EntityStore {
 
         index
     }
+
+    pub fn get_pheromone_at(&self, search_pos: &PositionComponent) -> Option<EntityIndex> {
+        // TODO do this more efficiently
+        // TODO this should probably return Vec<EntityIndex>
+        for (id, _) in &self.pheromones {
+            if let Some(pos) = self.positions.get(id) {
+                if pos == search_pos {
+                    return Some(*id);
+                }
+            }
+        }
+
+        None
+    }
 }
 
 impl fmt::Display for EntityStore {
