@@ -1,14 +1,8 @@
 #![deny(clippy::pedantic)]
 use crate::components::*;
+use crate::entities::*;
 use std::collections::HashMap;
 use std::fmt;
-
-#[derive(Clone)]
-pub enum EntityType {
-    Ant,
-}
-
-pub struct AntEntity {}
 
 type EntityIndex = usize;
 
@@ -43,6 +37,7 @@ impl EntityStore {
                     .insert(index, PositionComponent { x: 0, y: 0 });
                 self.ants.insert(index, AntEntity {});
             }
+            _ => {}
         }
         self.types.insert(index, entity_type.clone());
 

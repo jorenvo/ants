@@ -3,30 +3,12 @@ extern crate rand;
 
 mod components;
 mod entity_store;
+mod entities;
+mod game;
 
 use entity_store::*;
-use rand::Rng;
-
-struct Game {
-    entity_store: EntityStore,
-    rng: rand::rngs::ThreadRng,
-}
-
-impl Game {
-    fn move_ants(&mut self) {
-        let ants = &self.entity_store.ants;
-        for (id, _) in ants {
-            if let Some(pos) = self.entity_store.positions.get_mut(id) {
-                pos.x += self.rng.gen_range(0, 10);
-                pos.y += self.rng.gen_range(0, 10);
-            }
-        }
-    }
-
-    fn move_entities(&mut self) {
-        self.move_ants();
-    }
-}
+use entities::*;
+use game::*;
 
 fn main() {
     let mut game = Game {
