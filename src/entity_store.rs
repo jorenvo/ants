@@ -12,6 +12,7 @@ pub struct EntityStore {
     pub positions: HashMap<EntityIndex, PositionComponent>,
     // TODO: reverse_positions
     pub ants: HashMap<EntityIndex, AntEntity>,
+    pub pheromones: HashMap<EntityIndex, PheromoneEntity>,
 }
 
 impl EntityStore {
@@ -21,6 +22,7 @@ impl EntityStore {
             types: HashMap::new(),
             positions: HashMap::new(),
             ants: HashMap::new(),
+            pheromones: HashMap::new(),
         }
     }
 
@@ -37,7 +39,11 @@ impl EntityStore {
                     .insert(index, PositionComponent { x: 0, y: 0 });
                 self.ants.insert(index, AntEntity {});
             }
-            _ => {}
+            EntityType::Pheromone => {
+                self.positions
+                    .insert(index, PositionComponent { x: 0, y: 0 });
+                self.pheromones.insert(index, PheromoneEntity {});
+            }
         }
         self.types.insert(index, entity_type.clone());
 
@@ -47,12 +53,21 @@ impl EntityStore {
 
 impl fmt::Display for EntityStore {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        writeln!(f, "--- ANTS ---")?;
-        for ant_id in self.ants.keys() {
-            if let Some(pos) = self.positions.get(ant_id) {
-                writeln!(f, "id {} at {}, {}", ant_id, pos.x, pos.y)?;
+        for i in 0..self.new_index {
+            if self.ants.get(&i).is_some() {
+                if let Some(pos) = self.positions.get(&i) {
+                    writeln!(f, "ant {} at {}, {}", i, pos.x, pos.y)?;
+                } else {
+                    writeln!(f, "ant {} has no position!", i)?;
+                }
+            } else if self.pheromones.get(&i).is_some() {
+                if let Some(pos) = self.positions.get(&i) {
+                    writeln!(f, "pheromone {} at {}, {}", i, pos.x, pos.y)?;
+                } else {
+                    writeln!(f, "pheromone {} has no position!", i)?;
+                }
             } else {
-                writeln!(f, "id {} has no position!", ant_id)?;
+                writeln!(f, "unknown entity {}!", i)?;
             }
         }
 

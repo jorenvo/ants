@@ -15,8 +15,13 @@ fn main() {
         entity_store: EntityStore::init(),
         rng: rand::thread_rng(),
     };
+    
     for _ in 0..4 {
         game.entity_store.create_entity(&EntityType::Ant);
+    }
+
+    for _ in 0..1 {
+        game.entity_store.create_entity(&EntityType::Pheromone);
     }
 
     game.move_entities();
