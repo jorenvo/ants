@@ -1,28 +1,28 @@
 #![deny(clippy::pedantic)]
 use crate::components::*;
 use crate::entities::*;
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 use std::fmt;
 
 type EntityIndex = usize;
 
 pub struct EntityStore {
     pub new_index: EntityIndex,
-    pub types: HashMap<EntityIndex, EntityType>,
-    pub positions: HashMap<EntityIndex, PositionComponent>,
+    pub types: BTreeMap<EntityIndex, EntityType>,
+    pub positions: BTreeMap<EntityIndex, PositionComponent>,
     // TODO: reverse_positions
-    pub ants: HashMap<EntityIndex, AntEntity>,
-    pub pheromones: HashMap<EntityIndex, PheromoneEntity>,
+    pub ants: BTreeMap<EntityIndex, AntEntity>,
+    pub pheromones: BTreeMap<EntityIndex, PheromoneEntity>,
 }
 
 impl EntityStore {
     pub fn init() -> Self {
         Self {
             new_index: 0,
-            types: HashMap::new(),
-            positions: HashMap::new(),
-            ants: HashMap::new(),
-            pheromones: HashMap::new(),
+            types: BTreeMap::new(),
+            positions: BTreeMap::new(),
+            ants: BTreeMap::new(),
+            pheromones: BTreeMap::new(),
         }
     }
 
