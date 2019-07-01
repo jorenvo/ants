@@ -1,3 +1,4 @@
+#![deny(clippy::pedantic)]
 use crate::components::*;
 use std::collections::HashMap;
 use std::fmt;
