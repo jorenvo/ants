@@ -11,10 +11,7 @@ use entities::*;
 use game::*;
 
 fn main() {
-    let mut game = Game {
-        entity_store: EntityStore::init(),
-        rng: rand::thread_rng(),
-    };
+    let mut game = Game::init(EntityStore::init());
     
     for _ in 0..4 {
         game.entity_store.create_entity(&EntityType::Ant);
