@@ -21,7 +21,8 @@ fn main() {
         game.entity_store.create_entity(&EntityType::Pheromone);
     }
 
-    game.move_entities();
-
-    println!("{}", game.entity_store);
+    for _ in 0..10 {
+        game.move_entities();
+        println!("{}", game.entity_store);
+    }
 }
