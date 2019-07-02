@@ -1,4 +1,3 @@
-#![deny(clippy::pedantic)]
 use crate::components::*;
 use crate::entities::*;
 use std::collections::BTreeMap;

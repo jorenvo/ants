@@ -1,4 +1,3 @@
-#![deny(clippy::pedantic)]
 #[derive(PartialEq, Debug, Default)]
 pub struct PositionComponent {
     pub x: u32,

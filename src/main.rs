@@ -1,4 +1,5 @@
 #![deny(clippy::pedantic)]
+#![allow(clippy::cast_sign_loss,clippy::cast_possible_wrap)]
 extern crate rand;
 
 mod components;
