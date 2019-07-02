@@ -17,7 +17,7 @@ impl Game {
 
     fn get_valid_moves(&self, pos: &PositionComponent) -> (Vec<i32>, Vec<i32>) {
         // assume square map
-        const MAX: u32 = 10;
+        const MAX: u32 = 11;
         const MOVE_DISTANCE: i32 = 1;
         let mut valid_moves_x: Vec<i32> = vec![];
         let mut valid_moves_y: Vec<i32> = vec![];
@@ -50,9 +50,9 @@ impl Game {
             if let Some(pos) = self.entity_store.positions.get(ant_id) {
                 let (valid_moves_x, valid_moves_y) = self.get_valid_moves(pos);
                 let x_delta = valid_moves_x.choose(&mut self.rng).unwrap_or(&0);
-                let y_delta = valid_moves_y.choose(&mut self.rng).unwrap_or(&0);
+                let y_move = valid_moves_y.choose(&mut self.rng).unwrap_or(&0);
                 new_pos.x = (pos.x as i32 + x_delta) as u32;
-                new_pos.y = (pos.y as i32 + y_delta) as u32;
+                new_pos.y = (pos.y as i32 + y_move) as u32;
                 updated_position = true;
 
                 if let Some(ph_id) = self.entity_store.get_pheromone_at(&new_pos) {

@@ -12,7 +12,7 @@ use entities::*;
 use game::*;
 
 fn main() {
-    let mut game = Game::init(EntityStore::init());
+    let mut game = Game::init(EntityStore::default());
     
     for _ in 0..4 {
         game.entity_store.create_entity(&EntityType::Ant);
@@ -21,6 +21,8 @@ fn main() {
     for _ in 0..1 {
         game.entity_store.create_entity(&EntityType::Pheromone);
     }
+
+    game.entity_store.create_entity(&EntityType::Sugar);
 
     for _ in 0..10 {
         game.move_entities();

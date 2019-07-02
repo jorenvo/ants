@@ -5,26 +5,19 @@ use std::fmt;
 
 type EntityIndex = usize;
 
+#[derive(Default)]
 pub struct EntityStore {
     pub new_index: EntityIndex,
     pub types: BTreeMap<EntityIndex, EntityType>,
     pub positions: BTreeMap<EntityIndex, PositionComponent>,
+    pub edibles: BTreeMap<EntityIndex, EdibleComponent>,
     // TODO: reverse_positions
     pub ants: BTreeMap<EntityIndex, AntEntity>,
     pub pheromones: BTreeMap<EntityIndex, PheromoneEntity>,
+    pub sugars: BTreeMap<EntityIndex, SugarEntity>,
 }
 
 impl EntityStore {
-    pub fn init() -> Self {
-        Self {
-            new_index: 0,
-            types: BTreeMap::new(),
-            positions: BTreeMap::new(),
-            ants: BTreeMap::new(),
-            pheromones: BTreeMap::new(),
-        }
-    }
-
     fn get_new_index(&mut self) -> EntityIndex {
         self.new_index += 1;
         self.new_index - 1
@@ -34,14 +27,18 @@ impl EntityStore {
         let index = self.get_new_index();
         match entity_type {
             EntityType::Ant => {
-                self.positions
-                    .insert(index, PositionComponent { x: 0, y: 0 });
+                self.positions.insert(index, PositionComponent::default());
                 self.ants.insert(index, AntEntity {});
             }
             EntityType::Pheromone => {
-                self.positions
-                    .insert(index, PositionComponent { x: 0, y: 0 });
+                self.positions.insert(index, PositionComponent::default());
                 self.pheromones.insert(index, PheromoneEntity {});
+            }
+            EntityType::Sugar => {
+                self.positions
+                    .insert(index, PositionComponent { x: 10, y: 10 });
+                self.edibles.insert(index, EdibleComponent::default());
+                self.sugars.insert(index, SugarEntity {});
             }
         }
         self.types.insert(index, entity_type.clone());
@@ -78,6 +75,12 @@ impl fmt::Display for EntityStore {
                     writeln!(f, "pheromone {} at {}, {}", i, pos.x, pos.y)?;
                 } else {
                     writeln!(f, "pheromone {} has no position!", i)?;
+                }
+            } else if self.sugars.get(&i).is_some() {
+                if let Some(pos) = self.positions.get(&i) {
+                    writeln!(f, "sugar {} at {}, {}", i, pos.x, pos.y)?;
+                } else {
+                    writeln!(f, "sugar {} has no position!", i)?;
                 }
             } else {
                 writeln!(f, "unknown entity {}!", i)?;
