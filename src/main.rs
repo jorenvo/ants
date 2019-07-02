@@ -18,13 +18,9 @@ fn main() {
         game.entity_store.create_entity(&EntityType::Ant);
     }
 
-    for _ in 0..1 {
-        game.entity_store.create_entity(&EntityType::Pheromone);
-    }
-
     game.entity_store.create_entity(&EntityType::Sugar);
 
-    for _ in 0..10 {
+    for _ in 0..136 {
         game.move_entities();
         println!("{}", game.entity_store);
     }

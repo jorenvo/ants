@@ -1,6 +1,6 @@
 use crate::components::*;
 use crate::entities::*;
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashSet};
 use std::fmt;
 
 type EntityIndex = usize;
@@ -10,8 +10,8 @@ pub struct EntityStore {
     pub new_index: EntityIndex,
     pub types: BTreeMap<EntityIndex, EntityType>,
     pub positions: BTreeMap<EntityIndex, PositionComponent>,
+    pub positions_lookup: BTreeMap<PositionComponent, HashSet<EntityIndex>>,
     pub edibles: BTreeMap<EntityIndex, EdibleComponent>,
-    // TODO: reverse_positions
     pub ants: BTreeMap<EntityIndex, AntEntity>,
     pub pheromones: BTreeMap<EntityIndex, PheromoneEntity>,
     pub sugars: BTreeMap<EntityIndex, SugarEntity>,
@@ -23,20 +23,41 @@ impl EntityStore {
         self.new_index - 1
     }
 
+    fn update_position(
+        &mut self,
+        id: EntityIndex,
+        old_pos: Option<&PositionComponent>,
+        new_pos: &PositionComponent,
+    ) {
+        if let Some(old_pos) = old_pos {
+            if let Some(entities) = self.positions_lookup.get_mut(&old_pos) {
+                entities.remove(&id);
+            }
+        }
+
+        self.positions.insert(id, new_pos.clone());
+
+        if self.positions_lookup.get(new_pos).is_none() {
+            self.positions_lookup
+                .insert(new_pos.clone(), HashSet::new());
+        }
+
+        self.positions_lookup.get_mut(new_pos).unwrap().insert(id);
+    }
+
     pub fn create_entity(&mut self, entity_type: &EntityType) -> EntityIndex {
         let index = self.get_new_index();
         match entity_type {
             EntityType::Ant => {
-                self.positions.insert(index, PositionComponent::default());
+                self.update_position(index, None, &PositionComponent::default());
                 self.ants.insert(index, AntEntity {});
             }
             EntityType::Pheromone => {
-                self.positions.insert(index, PositionComponent::default());
+                self.update_position(index, None, &PositionComponent::default());
                 self.pheromones.insert(index, PheromoneEntity {});
             }
             EntityType::Sugar => {
-                self.positions
-                    .insert(index, PositionComponent { x: 10, y: 10 });
+                self.update_position(index, None, &PositionComponent { x: 10, y: 10 });
                 self.edibles.insert(index, EdibleComponent::default());
                 self.sugars.insert(index, SugarEntity {});
             }
@@ -47,11 +68,10 @@ impl EntityStore {
     }
 
     pub fn get_pheromone_at(&self, search_pos: &PositionComponent) -> Option<EntityIndex> {
-        // TODO do this more efficiently
         // TODO this should probably return Vec<EntityIndex>
-        for (id, _) in &self.pheromones {
-            if let Some(pos) = self.positions.get(id) {
-                if pos == search_pos {
+        if let Some(entities_at_pos) = self.positions_lookup.get(search_pos) {
+            for id in entities_at_pos {
+                if self.pheromones.get(&id).is_some() {
                     return Some(*id);
                 }
             }
