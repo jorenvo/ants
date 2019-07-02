@@ -3,18 +3,21 @@ use crate::entities::*;
 use std::collections::{BTreeMap, HashSet};
 use std::fmt;
 
-type EntityIndex = usize;
+pub type EntityIndex = usize;
 
 #[derive(Default)]
 pub struct EntityStore {
     pub new_index: EntityIndex,
-    pub types: BTreeMap<EntityIndex, EntityType>,
-    pub positions: BTreeMap<EntityIndex, PositionComponent>,
-    pub positions_lookup: BTreeMap<PositionComponent, HashSet<EntityIndex>>,
-    pub edibles: BTreeMap<EntityIndex, EdibleComponent>,
+
+    // Entities
     pub ants: BTreeMap<EntityIndex, AntEntity>,
     pub pheromones: BTreeMap<EntityIndex, PheromoneEntity>,
     pub sugars: BTreeMap<EntityIndex, SugarEntity>,
+
+    // Components
+    positions: BTreeMap<EntityIndex, PositionComponent>,
+    positions_lookup: BTreeMap<PositionComponent, HashSet<EntityIndex>>,
+    pub edibles: BTreeMap<EntityIndex, EdibleComponent>,
 }
 
 impl EntityStore {
@@ -23,12 +26,12 @@ impl EntityStore {
         self.new_index - 1
     }
 
-    fn update_position(
-        &mut self,
-        id: EntityIndex,
-        old_pos: Option<&PositionComponent>,
-        new_pos: &PositionComponent,
-    ) {
+    pub fn get_position(&self, id: &EntityIndex) -> Option<&PositionComponent> {
+        self.positions.get(id)
+    }
+
+    pub fn update_position(&mut self, id: EntityIndex, new_pos: &PositionComponent) {
+        let old_pos = self.positions.get(&id);
         if let Some(old_pos) = old_pos {
             if let Some(entities) = self.positions_lookup.get_mut(&old_pos) {
                 entities.remove(&id);
@@ -49,20 +52,19 @@ impl EntityStore {
         let index = self.get_new_index();
         match entity_type {
             EntityType::Ant => {
-                self.update_position(index, None, &PositionComponent::default());
+                self.update_position(index, &PositionComponent::default());
                 self.ants.insert(index, AntEntity {});
             }
             EntityType::Pheromone => {
-                self.update_position(index, None, &PositionComponent::default());
+                self.update_position(index, &PositionComponent::default());
                 self.pheromones.insert(index, PheromoneEntity {});
             }
             EntityType::Sugar => {
-                self.update_position(index, None, &PositionComponent { x: 10, y: 10 });
+                self.update_position(index, &PositionComponent { x: 10, y: 10 });
                 self.edibles.insert(index, EdibleComponent::default());
                 self.sugars.insert(index, SugarEntity {});
             }
         }
-        self.types.insert(index, entity_type.clone());
 
         index
     }
