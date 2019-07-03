@@ -8,6 +8,7 @@ pub type EntityIndex = usize;
 #[derive(Default)]
 pub struct EntityStore {
     pub new_index: EntityIndex,
+    pub entity_types: BTreeMap<EntityIndex, EntityType>,
 
     // Entities
     pub ants: BTreeMap<EntityIndex, AntEntity>,
@@ -35,6 +36,7 @@ impl EntityStore {
         if let Some(old_pos) = old_pos {
             if let Some(entities) = self.positions_lookup.get_mut(&old_pos) {
                 entities.remove(&id);
+                // TODO if entities is empty, delete from BTreeMap
             }
         }
 
@@ -65,21 +67,13 @@ impl EntityStore {
                 self.sugars.insert(index, SugarEntity {});
             }
         }
+        self.entity_types.insert(index, entity_type.clone());
 
         index
     }
 
-    pub fn get_pheromone_at(&self, search_pos: &PositionComponent) -> Option<EntityIndex> {
-        // TODO this should probably return Vec<EntityIndex>
-        if let Some(entities_at_pos) = self.positions_lookup.get(search_pos) {
-            for id in entities_at_pos {
-                if self.pheromones.get(&id).is_some() {
-                    return Some(*id);
-                }
-            }
-        }
-
-        None
+    pub fn get_entities_at(&self, search_pos: &PositionComponent) -> Option<&HashSet<EntityIndex>> {
+        self.positions_lookup.get(search_pos)
     }
 }
 

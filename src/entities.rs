@@ -1,4 +1,4 @@
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum EntityType {
     Ant,
     Pheromone,
