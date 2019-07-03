@@ -12,7 +12,7 @@ use entities::*;
 use game::*;
 
 fn main() {
-    let mut game = Game::init(EntityStore::default());
+    let mut game = Game::init(EntityStore::default(), 10, 10);
     
     for _ in 0..4 {
         game.entity_store.create_entity(&EntityType::Ant);
@@ -22,6 +22,6 @@ fn main() {
 
     for _ in 0..140 {
         game.tick();
-        println!("{}", game.entity_store);
+        println!("{}", game);
     }
 }

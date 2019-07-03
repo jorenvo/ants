@@ -1,7 +1,6 @@
 use crate::components::*;
 use crate::entities::*;
 use std::collections::{BTreeMap, HashSet};
-use std::fmt;
 
 pub type EntityIndex = usize;
 
@@ -31,6 +30,10 @@ impl EntityStore {
 
     pub fn get_position(&self, id: &EntityIndex) -> Option<&PositionComponent> {
         self.positions.get(id)
+    }
+
+    pub fn get_entities_at(&self, search_pos: &PositionComponent) -> Option<&HashSet<EntityIndex>> {
+        self.positions_lookup.get(search_pos)
     }
 
     pub fn update_position(&mut self, id: EntityIndex, new_pos: &PositionComponent) {
@@ -72,39 +75,5 @@ impl EntityStore {
         self.entity_types.insert(index, entity_type.clone());
 
         index
-    }
-
-    pub fn get_entities_at(&self, search_pos: &PositionComponent) -> Option<&HashSet<EntityIndex>> {
-        self.positions_lookup.get(search_pos)
-    }
-}
-
-impl fmt::Display for EntityStore {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        for i in 0..self.new_index {
-            if self.ants.get(&i).is_some() {
-                if let Some(pos) = self.positions.get(&i) {
-                    writeln!(f, "ant {} at {}, {}", i, pos.x, pos.y)?;
-                } else {
-                    writeln!(f, "ant {} has no position!", i)?;
-                }
-            } else if self.pheromones.get(&i).is_some() {
-                if let Some(pos) = self.positions.get(&i) {
-                    writeln!(f, "pheromone {} at {}, {}", i, pos.x, pos.y)?;
-                } else {
-                    writeln!(f, "pheromone {} has no position!", i)?;
-                }
-            } else if self.sugars.get(&i).is_some() {
-                if let Some(pos) = self.positions.get(&i) {
-                    writeln!(f, "sugar {} at {}, {}", i, pos.x, pos.y)?;
-                } else {
-                    writeln!(f, "sugar {} has no position!", i)?;
-                }
-            } else {
-                writeln!(f, "unknown entity {}!", i)?;
-            }
-        }
-
-        Ok(())
     }
 }

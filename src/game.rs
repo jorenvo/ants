@@ -2,16 +2,21 @@ use crate::components::*;
 use crate::entities::*;
 use crate::entity_store::*;
 use rand::prelude::{SeedableRng, SliceRandom};
+use std::fmt;
 
 // TODO is this a System?
 pub struct Game {
+    width: u32,
+    height: u32,
     pub entity_store: EntityStore,
     pub rng: rand::rngs::StdRng,
 }
 
 impl Game {
-    pub fn init(entity_store: EntityStore) -> Self {
+    pub fn init(entity_store: EntityStore, width: u32, height: u32) -> Self {
         Self {
+            width: width,
+            height: height,
             entity_store: entity_store,
             rng: SeedableRng::from_seed([150; 32]),
         }
@@ -19,7 +24,6 @@ impl Game {
 
     fn get_valid_moves(&self, pos: &PositionComponent) -> (Vec<i32>, Vec<i32>) {
         // assume square map
-        const MAX: u32 = 11;
         const MOVE_DISTANCE: i32 = 1;
         let mut valid_moves_x: Vec<i32> = vec![];
         let mut valid_moves_y: Vec<i32> = vec![];
@@ -28,7 +32,7 @@ impl Game {
             valid_moves_x.push(-MOVE_DISTANCE);
         }
 
-        if pos.x + (MOVE_DISTANCE as u32) < MAX {
+        if pos.x + (MOVE_DISTANCE as u32) < self.width {
             valid_moves_x.push(MOVE_DISTANCE);
         }
 
@@ -36,7 +40,7 @@ impl Game {
             valid_moves_y.push(-MOVE_DISTANCE);
         }
 
-        if pos.y + (MOVE_DISTANCE as u32) < MAX {
+        if pos.y + (MOVE_DISTANCE as u32) < self.height {
             valid_moves_y.push(MOVE_DISTANCE);
         }
 
@@ -138,5 +142,40 @@ impl Game {
     pub fn tick(&mut self) {
         self.ants();
         self.pheromones();
+    }
+}
+
+impl fmt::Display for Game {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let separator = "+".to_owned() + &(0..self.width).map(|_| "-").collect::<String>() + "+";
+        writeln!(f, "{}", separator)?;
+
+        for row in 0..self.height {
+            write!(f, "|")?;
+            for col in 0..self.width {
+                let mut cell_value = " ";
+                let pos = PositionComponent { x: col, y: row };
+
+                if let Some(ids) = self.entity_store.get_entities_at(&pos) {
+                    for id in ids {
+                        match self.entity_store.entity_types.get(id) {
+                            Some(EntityType::Ant) => {
+                                cell_value = "X";
+                            }
+                            _ => {
+                                cell_value = " ";
+                            }
+                        }
+                    }
+                }
+
+                write!(f, "{}", cell_value)?;
+            }
+
+            writeln!(f, "|")?;
+        }
+        writeln!(f, "{}", separator)?;
+
+        Ok(())
     }
 }
