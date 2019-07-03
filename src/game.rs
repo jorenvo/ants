@@ -2,7 +2,6 @@ use crate::components::*;
 use crate::entities::*;
 use crate::entity_store::*;
 use rand::prelude::{SeedableRng, SliceRandom};
-use std::collections::HashSet;
 
 // TODO is this a System?
 pub struct Game {
@@ -47,17 +46,7 @@ impl Game {
     fn handle_new_ant_pos(&mut self, ant_id: &EntityIndex, new_pos: &PositionComponent) {
         let entities_at_new_pos = self.entity_store.get_entities_at(&new_pos);
         if let Some(entities_at_new_pos) = entities_at_new_pos {
-            let types_of_interest: HashSet<EntityType> = [EntityType::Pheromone, EntityType::Sugar]
-                .iter()
-                .cloned()
-                .collect();
-            let entities_of_interest = entities_at_new_pos.iter().filter(|id| {
-                types_of_interest
-                    .get(self.entity_store.entity_types.get(id).unwrap())
-                    .is_some()
-            });
-
-            for id in entities_of_interest {
+            for id in entities_at_new_pos {
                 match self.entity_store.entity_types.get(id) {
                     Some(EntityType::Pheromone) => {
                         println!(
@@ -68,9 +57,7 @@ impl Game {
                     Some(EntityType::Sugar) => {
                         println!("ant {} and sugar {} at position {:?}", ant_id, id, new_pos);
                     }
-                    _ => {
-                        panic!("unexpected type in entities_of_interest");
-                    }
+                    _ => {}
                 }
             }
         }
