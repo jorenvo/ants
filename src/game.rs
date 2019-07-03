@@ -1,6 +1,7 @@
 use crate::components::*;
 use crate::entities::*;
 use crate::entity_store::*;
+use colored::*;
 use rand::prelude::{SeedableRng, SliceRandom};
 use std::fmt;
 
@@ -97,7 +98,7 @@ impl Game {
                             .insert(ph_id, IntensityComponent { strength: 8 });
 
                         let ant_pos = self.entity_store.get_position(ant_id).unwrap().clone();
-                        self.entity_store.update_position(ph_id, &ant_pos);
+                        self.entity_store.update_position(&ph_id, &ant_pos);
                     }
                 }
             }
@@ -120,22 +121,27 @@ impl Game {
         }
 
         for (ant_id, pos) in new_positions {
-            self.entity_store.update_position(ant_id, &pos);
+            self.entity_store.update_position(&ant_id, &pos);
             self.handle_new_ant_pos(&ant_id, &pos);
             self.release_pheromones(&ant_id);
         }
     }
 
     fn pheromones(&mut self) {
-        dbg!(&self.entity_store.pheromones);
-        dbg!(&self.entity_store.intensities);
+        let mut evaporated_pheromones = vec![];
         for (ph_id, _) in &self.entity_store.pheromones {
             let intensity = self.entity_store.intensities.get_mut(&ph_id).unwrap();
             intensity.strength -= 1;
 
             if intensity.strength == 0 {
                 self.entity_store.intensities.remove(&ph_id);
+                evaporated_pheromones.push(ph_id.clone());
             }
+        }
+
+        for ph_id in evaporated_pheromones {
+            self.entity_store.remove_position(&ph_id);
+            self.entity_store.pheromones.remove(&ph_id);
         }
     }
 
@@ -153,23 +159,34 @@ impl fmt::Display for Game {
         for row in 0..self.height {
             write!(f, "|")?;
             for col in 0..self.width {
-                let mut cell_value = " ";
+                let mut cell_color = "white";
+                let mut cell_value: String = "■".to_string();;
                 let pos = PositionComponent { x: col, y: row };
 
                 if let Some(ids) = self.entity_store.get_entities_at(&pos) {
                     for id in ids {
                         match self.entity_store.entity_types.get(id) {
                             Some(EntityType::Ant) => {
-                                cell_value = "X";
+                                cell_value = "◆".to_string();
                             }
-                            _ => {
-                                cell_value = " ";
+                            Some(EntityType::Sugar) => {
+                                cell_color = "green";
                             }
+                            Some(EntityType::Pheromone) => {
+                                cell_value = self
+                                    .entity_store
+                                    .intensities
+                                    .get(id)
+                                    .unwrap()
+                                    .strength
+                                    .to_string();
+                            }
+                            _ => {}
                         }
                     }
                 }
 
-                write!(f, "{}", cell_value)?;
+                write!(f, "{}", cell_value.color(cell_color))?;
             }
 
             writeln!(f, "|")?;
