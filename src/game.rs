@@ -2,7 +2,9 @@ use crate::components::*;
 use crate::entities::*;
 use crate::entity_store::*;
 use rand::prelude::{SeedableRng, SliceRandom};
+use std::collections::HashSet;
 
+// TODO is this a System?
 pub struct Game {
     pub entity_store: EntityStore,
     pub rng: rand::rngs::StdRng,
@@ -42,6 +44,38 @@ impl Game {
         (valid_moves_x, valid_moves_y)
     }
 
+    fn handle_new_ant_pos(&mut self, ant_id: &EntityIndex, new_pos: &PositionComponent) {
+        let entities_at_new_pos = self.entity_store.get_entities_at(&new_pos);
+        if let Some(entities_at_new_pos) = entities_at_new_pos {
+            let types_of_interest: HashSet<EntityType> = [EntityType::Pheromone, EntityType::Sugar]
+                .iter()
+                .cloned()
+                .collect();
+            let entities_of_interest = entities_at_new_pos.iter().filter(|id| {
+                types_of_interest
+                    .get(self.entity_store.entity_types.get(id).unwrap())
+                    .is_some()
+            });
+
+            for id in entities_of_interest {
+                match self.entity_store.entity_types.get(id) {
+                    Some(EntityType::Pheromone) => {
+                        println!(
+                            "ant {} and pheromone {} at position {:?}",
+                            ant_id, id, new_pos
+                        );
+                    }
+                    Some(EntityType::Sugar) => {
+                        println!("ant {} and sugar {} at position {:?}", ant_id, id, new_pos);
+                    }
+                    _ => {
+                        panic!("unexpected type in entities_of_interest");
+                    }
+                }
+            }
+        }
+    }
+
     fn move_ants(&mut self) {
         let mut new_positions: Vec<(EntityIndex, PositionComponent)> = vec![];
         for (ant_id, _) in &self.entity_store.ants {
@@ -54,35 +88,12 @@ impl Game {
                 new_pos.x = (pos.x as i32 + x_delta) as u32;
                 new_pos.y = (pos.y as i32 + y_delta) as u32;
                 new_positions.push((*ant_id, new_pos.clone()));
-
-                let entities_at_new_pos = self.entity_store.get_entities_at(&new_pos);
-                if let Some(entities_at_new_pos) = entities_at_new_pos {
-                    let pheromones = entities_at_new_pos.iter().filter(|id| {
-                        self.entity_store.entity_types.get(id).unwrap() == &EntityType::Pheromone
-                    });
-                    let sugars = entities_at_new_pos.iter().filter(|id| {
-                        self.entity_store.entity_types.get(id).unwrap() == &EntityType::Sugar
-                    });
-
-                    for ph in pheromones {
-                        println!(
-                            "ant {} and pheromone {} at position {:?}",
-                            ant_id, ph, new_pos
-                        );
-                    }
-
-                    for sugar in sugars {
-                        println!(
-                            "ant {} and sugar {} at position {:?}",
-                            ant_id, sugar, new_pos
-                        );
-                    }
-                }
             }
         }
 
         for (ant_id, pos) in new_positions {
             self.entity_store.update_position(ant_id, &pos);
+            self.handle_new_ant_pos(&ant_id, &pos);
         }
     }
 
