@@ -153,33 +153,36 @@ impl Game {
 
 impl fmt::Display for Game {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let separator = "+".to_owned() + &(0..self.width).map(|_| "-").collect::<String>() + "+";
+        let separator =
+            "+".to_owned() + &(0..self.width * 2).map(|_| "-").collect::<String>() + "+";
         writeln!(f, "{}", separator)?;
 
         for row in 0..self.height {
             write!(f, "|")?;
             for col in 0..self.width {
                 let mut cell_color = "white";
-                let mut cell_value: String = "■".to_string();;
+                let mut cell_value: String = "■■".to_string();;
                 let pos = PositionComponent { x: col, y: row };
 
                 if let Some(ids) = self.entity_store.get_entities_at(&pos) {
                     for id in ids {
                         match self.entity_store.entity_types.get(id) {
                             Some(EntityType::Ant) => {
-                                cell_value = "◆".to_string();
+                                cell_value = "◆".to_string()
+                                    + &cell_value.chars().nth(1).unwrap().to_string();
                             }
                             Some(EntityType::Sugar) => {
                                 cell_color = "green";
                             }
                             Some(EntityType::Pheromone) => {
-                                cell_value = self
-                                    .entity_store
-                                    .intensities
-                                    .get(id)
-                                    .unwrap()
-                                    .strength
-                                    .to_string();
+                                cell_value = cell_value.chars().nth(0).unwrap().to_string()
+                                    + &self
+                                        .entity_store
+                                        .intensities
+                                        .get(id)
+                                        .unwrap()
+                                        .strength
+                                        .to_string();
                             }
                             _ => {}
                         }
