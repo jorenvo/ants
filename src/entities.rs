@@ -13,4 +13,5 @@ pub enum PheromoneType {
     Food,
 }
 
+#[derive(Debug)]
 pub struct PheromoneEntity {}

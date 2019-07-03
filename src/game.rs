@@ -78,18 +78,29 @@ impl Game {
     }
 
     fn release_pheromones(&mut self, ant_id: &EntityIndex) {
-        if let Some(releasing_pheromone_comp) = self.entity_store.releasing_pheromones.get(ant_id) {
-            match releasing_pheromone_comp.ph_type {
-                PheromoneType::Food => {
-                    let ph_id = self.entity_store.create_entity(&EntityType::Pheromone);
-                    let ant_pos = self.entity_store.get_position(ant_id).unwrap().clone();
-                    self.entity_store.update_position(ph_id, &ant_pos);
+        if let Some(releasing_pheromone_comp) =
+            self.entity_store.releasing_pheromones.get_mut(ant_id)
+        {
+            releasing_pheromone_comp.ticks_left -= 1;
+            if releasing_pheromone_comp.ticks_left == 0 {
+                self.entity_store.releasing_pheromones.remove(ant_id);
+            } else {
+                match releasing_pheromone_comp.ph_type {
+                    PheromoneType::Food => {
+                        let ph_id = self.entity_store.create_entity(&EntityType::Pheromone);
+                        self.entity_store
+                            .intensities
+                            .insert(ph_id, IntensityComponent { strength: 8 });
+
+                        let ant_pos = self.entity_store.get_position(ant_id).unwrap().clone();
+                        self.entity_store.update_position(ph_id, &ant_pos);
+                    }
                 }
             }
         }
     }
 
-    fn move_ants(&mut self) {
+    fn ants(&mut self) {
         let mut new_positions: Vec<(EntityIndex, PositionComponent)> = vec![];
         for (ant_id, _) in &self.entity_store.ants {
             let mut new_pos = PositionComponent::default();
@@ -111,7 +122,21 @@ impl Game {
         }
     }
 
-    pub fn move_entities(&mut self) {
-        self.move_ants();
+    fn pheromones(&mut self) {
+        dbg!(&self.entity_store.pheromones);
+        dbg!(&self.entity_store.intensities);
+        for (ph_id, _) in &self.entity_store.pheromones {
+            let intensity = self.entity_store.intensities.get_mut(&ph_id).unwrap();
+            intensity.strength -= 1;
+
+            if intensity.strength == 0 {
+                self.entity_store.intensities.remove(&ph_id);
+            }
+        }
+    }
+
+    pub fn tick(&mut self) {
+        self.ants();
+        self.pheromones();
     }
 }

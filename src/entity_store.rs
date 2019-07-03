@@ -20,6 +20,7 @@ pub struct EntityStore {
     positions_lookup: BTreeMap<PositionComponent, HashSet<EntityIndex>>,
     pub edibles: BTreeMap<EntityIndex, EdibleComponent>,
     pub releasing_pheromones: BTreeMap<EntityIndex, ReleasingPheromoneComponent>,
+    pub intensities: BTreeMap<EntityIndex, IntensityComponent>,
 }
 
 impl EntityStore {

@@ -21,7 +21,7 @@ fn main() {
     game.entity_store.create_entity(&EntityType::Sugar);
 
     for _ in 0..140 {
-        game.move_entities();
+        game.tick();
         println!("{}", game.entity_store);
     }
 }
