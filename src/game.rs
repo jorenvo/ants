@@ -45,6 +45,9 @@ impl Game {
 
     fn handle_new_ant_pos(&mut self, ant_id: &EntityIndex, new_pos: &PositionComponent) {
         let entities_at_new_pos = self.entity_store.get_entities_at(&new_pos);
+        let mut new_releasing_ph_components: Vec<(EntityIndex, ReleasingPheromoneComponent)> =
+            vec![];
+
         if let Some(entities_at_new_pos) = entities_at_new_pos {
             for id in entities_at_new_pos {
                 match self.entity_store.entity_types.get(id) {
@@ -56,8 +59,31 @@ impl Game {
                     }
                     Some(EntityType::Sugar) => {
                         println!("ant {} and sugar {} at position {:?}", ant_id, id, new_pos);
+                        new_releasing_ph_components.push((
+                            *ant_id,
+                            ReleasingPheromoneComponent {
+                                ticks_left: 4,
+                                ph_type: PheromoneType::Food,
+                            },
+                        ));
                     }
                     _ => {}
+                }
+            }
+        }
+
+        for (id, comp) in new_releasing_ph_components {
+            self.entity_store.releasing_pheromones.insert(id, comp);
+        }
+    }
+
+    fn release_pheromones(&mut self, ant_id: &EntityIndex) {
+        if let Some(releasing_pheromone_comp) = self.entity_store.releasing_pheromones.get(ant_id) {
+            match releasing_pheromone_comp.ph_type {
+                PheromoneType::Food => {
+                    let ph_id = self.entity_store.create_entity(&EntityType::Pheromone);
+                    let ant_pos = self.entity_store.get_position(ant_id).unwrap().clone();
+                    self.entity_store.update_position(ph_id, &ant_pos);
                 }
             }
         }
@@ -81,6 +107,7 @@ impl Game {
         for (ant_id, pos) in new_positions {
             self.entity_store.update_position(ant_id, &pos);
             self.handle_new_ant_pos(&ant_id, &pos);
+            self.release_pheromones(&ant_id);
         }
     }
 

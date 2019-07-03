@@ -6,5 +6,11 @@ pub enum EntityType {
 }
 
 pub struct AntEntity {}
-pub struct PheromoneEntity {}
 pub struct SugarEntity {}
+
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+pub enum PheromoneType {
+    Food,
+}
+
+pub struct PheromoneEntity {}
