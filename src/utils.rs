@@ -11,4 +11,3 @@ pub fn cmp_float(a: f64, b: f64) -> Ordering {
         Ordering::Greater
     }
 }
-

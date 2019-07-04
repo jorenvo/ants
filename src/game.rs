@@ -191,7 +191,6 @@ impl Game {
 
 impl fmt::Display for Game {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        // internal state
         writeln!(f, "COMPONENTS")?;
         writeln!(f, "----------")?;
         writeln!(f, "positions: {:#?}", self.entity_store.positions)?;
