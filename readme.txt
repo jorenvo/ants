@@ -1,7 +1,6 @@
-Bugs
-----
-Ants produce pheromones where there already are.
+Pre-commit hook
+---------------
+#!/usr/bin/env bash
+set -euo pipefail
 
-Todo
-----
-Make PositionComponent use floating point, printing function should round
+cargo fmt -- --check
