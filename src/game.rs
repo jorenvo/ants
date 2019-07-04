@@ -7,14 +7,14 @@ use std::fmt;
 
 // TODO is this a System?
 pub struct Game {
-    width: u32,
-    height: u32,
+    width: f64,
+    height: f64,
     pub entity_store: EntityStore,
     pub rng: rand::rngs::StdRng,
 }
 
 impl Game {
-    pub fn init(entity_store: EntityStore, width: u32, height: u32) -> Self {
+    pub fn init(entity_store: EntityStore, width: f64, height: f64) -> Self {
         Self {
             width: width,
             height: height,
@@ -23,25 +23,25 @@ impl Game {
         }
     }
 
-    fn get_valid_moves(&self, pos: &PositionComponent) -> (Vec<i32>, Vec<i32>) {
+    fn get_valid_moves(&self, pos: &PositionComponent) -> (Vec<f64>, Vec<f64>) {
         // assume square map
-        const MOVE_DISTANCE: i32 = 1;
-        let mut valid_moves_x: Vec<i32> = vec![];
-        let mut valid_moves_y: Vec<i32> = vec![];
+        const MOVE_DISTANCE: f64 = 1.0;
+        let mut valid_moves_x: Vec<f64> = vec![];
+        let mut valid_moves_y: Vec<f64> = vec![];
 
-        if pos.x.checked_sub(MOVE_DISTANCE as u32).is_some() {
+        if pos.x - MOVE_DISTANCE >= 0.0 {
             valid_moves_x.push(-MOVE_DISTANCE);
         }
 
-        if pos.x + (MOVE_DISTANCE as u32) < self.width {
+        if pos.x + MOVE_DISTANCE < self.width {
             valid_moves_x.push(MOVE_DISTANCE);
         }
 
-        if pos.y.checked_sub(MOVE_DISTANCE as u32).is_some() {
+        if pos.y - MOVE_DISTANCE >= 0.0 {
             valid_moves_y.push(-MOVE_DISTANCE);
         }
 
-        if pos.y + (MOVE_DISTANCE as u32) < self.height {
+        if pos.y + MOVE_DISTANCE < self.height {
             valid_moves_y.push(MOVE_DISTANCE);
         }
 
@@ -112,10 +112,10 @@ impl Game {
 
             if let Some(pos) = self.entity_store.get_position(ant_id) {
                 let (valid_moves_x, valid_moves_y) = self.get_valid_moves(pos);
-                let x_delta = valid_moves_x.choose(&mut self.rng).unwrap_or(&0);
-                let y_delta = valid_moves_y.choose(&mut self.rng).unwrap_or(&0);
-                new_pos.x = (pos.x as i32 + x_delta) as u32;
-                new_pos.y = (pos.y as i32 + y_delta) as u32;
+                let x_delta = valid_moves_x.choose(&mut self.rng).unwrap_or(&0.0);
+                let y_delta = valid_moves_y.choose(&mut self.rng).unwrap_or(&0.0);
+                new_pos.x = pos.x + x_delta;
+                new_pos.y = pos.y + y_delta;
                 new_positions.push((*ant_id, new_pos.clone()));
             }
         }
@@ -153,16 +153,18 @@ impl Game {
 
 impl fmt::Display for Game {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let integer_width = self.width.round() as u64;
+        let integer_height = self.height.round() as u64;
         let separator =
-            "+".to_owned() + &(0..self.width * 2).map(|_| "-").collect::<String>() + "+";
+            "+".to_owned() + &(0..integer_width * 2).map(|_| "-").collect::<String>() + "+";
         writeln!(f, "{}", separator)?;
 
-        for row in 0..self.height {
+        for row in 0..integer_height {
             write!(f, "|")?;
-            for col in 0..self.width {
+            for col in 0..integer_width {
                 let mut cell_color = "white";
                 let mut cell_value: String = "■■".to_string();;
-                let pos = PositionComponent { x: col, y: row };
+                let pos = PositionComponent { x: col as f64, y: row as f64};
 
                 if let Some(ids) = self.entity_store.get_entities_at(&pos) {
                     for id in ids {

@@ -1,9 +1,37 @@
 use crate::entities::*;
+use crate::utils::*;
+use std::cmp::Ordering;
 
-#[derive(PartialEq, PartialOrd, Clone, Ord, Eq, Debug, Default)]
+#[derive(Clone, Debug, Default)]
 pub struct PositionComponent {
-    pub x: u32,
-    pub y: u32,
+    pub x: f64,
+    pub y: f64,
+}
+
+impl PartialEq for PositionComponent {
+    fn eq(&self, other: &Self) -> bool {
+        self.cmp(other) == Ordering::Equal
+    }
+}
+
+impl Eq for PositionComponent {}
+
+impl PartialOrd for PositionComponent {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for PositionComponent {
+    fn cmp(&self, other: &Self) -> Ordering {
+        let ordering_y = cmp_float(self.y, other.y);
+
+        if ordering_y == Ordering::Equal {
+            cmp_float(self.x, other.x)
+        } else {
+            ordering_y
+        }
+    }
 }
 
 #[derive(PartialEq, Debug, Default)]

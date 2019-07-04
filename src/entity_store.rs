@@ -84,7 +84,7 @@ impl EntityStore {
                 self.pheromones.insert(index, PheromoneEntity {});
             }
             EntityType::Sugar => {
-                self.update_position(&index, &PositionComponent { x: 5, y: 5 });
+                self.update_position(&index, &PositionComponent { x: 5.0, y: 5.0 });
                 self.edibles.insert(index, EdibleComponent::default());
                 self.sugars.insert(index, SugarEntity {});
             }
