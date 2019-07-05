@@ -269,8 +269,8 @@ impl fmt::Display for Game {
             let mut row_2 = String::new();
             for col in 0..integer_width {
                 let mut cell_color = "white";
-                let mut cell_value_row_1: String = "■■■".to_string();;
-                let mut cell_value_row_2: String = "■■■".to_string();;
+                let mut cell_value_row_1: String = "   ".to_string();;
+                let mut cell_value_row_2: String = "   ".to_string();;
                 let pos = PositionComponent {
                     x: col as f64,
                     y: row as f64,
@@ -285,6 +285,7 @@ impl fmt::Display for Game {
                                         [cell_value_row_1.char_indices().nth(1).unwrap().0..];
                             }
                             Some(EntityType::Sugar) => {
+                                cell_value_row_1 = "■■■".to_string();
                                 cell_color = "green";
                             }
                             Some(EntityType::Pheromone) => {
