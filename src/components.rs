@@ -44,7 +44,7 @@ pub struct PheromoneTypeComponent {
 
 #[derive(PartialEq, Debug, Default)]
 pub struct IntensityComponent {
-    pub strength: u8,
+    pub strength: u32,
 }
 
 #[derive(PartialEq, Debug)]

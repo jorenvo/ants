@@ -132,7 +132,7 @@ impl Game {
     fn merge_and_clear_pheromones(
         &mut self,
         pos: &PositionComponent,
-        extra_strength: u8,
+        extra_strength: u32,
     ) -> IntensityComponent {
         let mut intensity = IntensityComponent {
             strength: extra_strength,
@@ -148,7 +148,7 @@ impl Game {
                 .collect();
 
             if !pheromones.is_empty() {
-                let merged_strength: u8 = pheromones
+                let merged_strength: u32 = pheromones
                     .iter()
                     .map(|p| self.entity_store.intensities.get(p).unwrap().strength)
                     .sum();
@@ -262,7 +262,7 @@ impl fmt::Display for Game {
         let integer_width = self.width.round() as u64;
         let integer_height = self.height.round() as u64;
         let separator =
-            "+".to_owned() + &(0..integer_width * 2).map(|_| "-").collect::<String>() + "+";
+            "+".to_owned() + &(0..integer_width * 3).map(|_| "-").collect::<String>() + "+";
         writeln!(f, "{}", separator)?;
 
         for row in 0..integer_height {
@@ -270,8 +270,8 @@ impl fmt::Display for Game {
             let mut row_2 = String::new();
             for col in 0..integer_width {
                 let mut cell_color = "white";
-                let mut cell_value_row_1: String = "■■".to_string();;
-                let mut cell_value_row_2: String = "■■".to_string();;
+                let mut cell_value_row_1: String = "■■■".to_string();;
+                let mut cell_value_row_2: String = "■■■".to_string();;
                 let pos = PositionComponent {
                     x: col as f64,
                     y: row as f64,
@@ -282,14 +282,15 @@ impl fmt::Display for Game {
                         match self.entity_store.entity_types.get(id) {
                             Some(EntityType::Ant) => {
                                 cell_value_row_1 = "◆".to_string()
-                                    + &cell_value_row_1.chars().nth(1).unwrap().to_string();
+                                    + &cell_value_row_1
+                                        [cell_value_row_1.char_indices().nth(1).unwrap().0..];
                             }
                             Some(EntityType::Sugar) => {
                                 cell_color = "green";
                             }
                             Some(EntityType::Pheromone) => {
                                 cell_value_row_2 = format!(
-                                    "{:02}",
+                                    "{:03}",
                                     self.entity_store.intensities.get(id).unwrap().strength
                                 );
                             }
