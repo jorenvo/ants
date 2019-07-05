@@ -78,10 +78,6 @@ impl Game {
             ));
         }
 
-        // 80%: same direction
-        //  9%: go right
-        //  9%: go left
-        //  2%: go back
         for m in valid_moves.iter_mut() {
             if m.1.x == direction.x && m.1.y == direction.y {
                 m.0 = 60;
