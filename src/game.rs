@@ -191,21 +191,21 @@ impl Game {
 
 impl fmt::Display for Game {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        writeln!(f, "COMPONENTS")?;
-        writeln!(f, "----------")?;
-        writeln!(f, "positions: {:#?}", self.entity_store.positions)?;
-        writeln!(
-            f,
-            "positions_lookup: {:#?}",
-            self.entity_store.positions_lookup
-        )?;
-        writeln!(
-            f,
-            "releasing_pheromones: {:#?}",
-            self.entity_store.releasing_pheromones
-        )?;
-        writeln!(f, "intensities: {:#?}", self.entity_store.intensities)?;
-        writeln!(f, "----------")?;
+        // writeln!(f, "COMPONENTS")?;
+        // writeln!(f, "----------")?;
+        // writeln!(f, "positions: {:#?}", self.entity_store.positions)?;
+        // writeln!(
+        //     f,
+        //     "positions_lookup: {:#?}",
+        //     self.entity_store.positions_lookup
+        // )?;
+        // writeln!(
+        //     f,
+        //     "releasing_pheromones: {:#?}",
+        //     self.entity_store.releasing_pheromones
+        // )?;
+        // writeln!(f, "intensities: {:#?}", self.entity_store.intensities)?;
+        // writeln!(f, "----------")?;
 
         let integer_width = self.width.round() as u64;
         let integer_height = self.height.round() as u64;
@@ -214,10 +214,12 @@ impl fmt::Display for Game {
         writeln!(f, "{}", separator)?;
 
         for row in 0..integer_height {
-            write!(f, "|")?;
+            let mut row_1 = String::new();
+            let mut row_2 = String::new();
             for col in 0..integer_width {
                 let mut cell_color = "white";
-                let mut cell_value: String = "■■".to_string();;
+                let mut cell_value_row_1: String = "■■".to_string();;
+                let mut cell_value_row_2: String = "■■".to_string();;
                 let pos = PositionComponent {
                     x: col as f64,
                     y: row as f64,
@@ -227,31 +229,27 @@ impl fmt::Display for Game {
                     for id in ids {
                         match self.entity_store.entity_types.get(id) {
                             Some(EntityType::Ant) => {
-                                cell_value = "◆".to_string()
-                                    + &cell_value.chars().nth(1).unwrap().to_string();
+                                cell_value_row_1 = "◆".to_string()
+                                    + &cell_value_row_1.chars().nth(1).unwrap().to_string();
                             }
                             Some(EntityType::Sugar) => {
                                 cell_color = "green";
                             }
                             Some(EntityType::Pheromone) => {
-                                cell_value = cell_value.chars().nth(0).unwrap().to_string()
-                                    + &self
-                                        .entity_store
-                                        .intensities
-                                        .get(id)
-                                        .unwrap()
-                                        .strength
-                                        .to_string();
+                                cell_value_row_2 = format!(
+                                    "{:02}",
+                                    self.entity_store.intensities.get(id).unwrap().strength
+                                );
                             }
                             _ => {}
                         }
                     }
                 }
-
-                write!(f, "{}", cell_value.color(cell_color))?;
+                row_1 += &format!("{}", cell_value_row_1.color(cell_color));
+                row_2 += &format!("{}", cell_value_row_2.color(cell_color));
             }
 
-            writeln!(f, "|")?;
+            writeln!(f, "|{}|\n|{}|", row_1, row_2)?;
         }
         writeln!(f, "{}", separator)?;
 
