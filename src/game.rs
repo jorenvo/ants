@@ -261,10 +261,9 @@ impl fmt::Display for Game {
 
         let integer_width = self.width.round() as u64;
         let integer_height = self.height.round() as u64;
-        let separator =
-            "+".to_owned() + &(0..integer_width * 3).map(|_| "-").collect::<String>() + "+";
-        writeln!(f, "{}", separator)?;
+        let separator = "|".to_owned() + &(0..integer_width).map(|_| "---|").collect::<String>();
 
+        writeln!(f, "{}", separator)?;
         for row in 0..integer_height {
             let mut row_1 = String::new();
             let mut row_2 = String::new();
@@ -298,13 +297,16 @@ impl fmt::Display for Game {
                         }
                     }
                 }
-                row_1 += &format!("{}", cell_value_row_1.color(cell_color));
-                row_2 += &format!("{}", cell_value_row_2.color(cell_color));
+                row_1 += &format!("|{}", cell_value_row_1.color(cell_color));
+                row_2 += &format!("|{}", cell_value_row_2.color(cell_color));
             }
 
-            writeln!(f, "|{}|\n|{}|", row_1, row_2)?;
+            writeln!(f, "{}|", row_1)?;
+            writeln!(f, "{}|", row_2)?;
+            writeln!(f, "{}", separator)?;
         }
-        writeln!(f, "{}", separator)?;
+
+        writeln!(f, "")?;
 
         Ok(())
     }
