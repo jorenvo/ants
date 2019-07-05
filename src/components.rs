@@ -52,3 +52,9 @@ pub struct ReleasingPheromoneComponent {
     pub ticks_left: u32,
     pub ph_type: PheromoneType,
 }
+
+#[derive(PartialEq, Debug)]
+pub struct DirectionComponent {
+    pub x: f64,
+    pub y: f64,
+}

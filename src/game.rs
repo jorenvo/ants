@@ -2,7 +2,9 @@ use crate::components::*;
 use crate::entities::*;
 use crate::entity_store::*;
 use colored::*;
-use rand::prelude::{SeedableRng, SliceRandom};
+use rand::distributions::Distribution;
+use rand::distributions::WeightedIndex;
+use rand::prelude::SeedableRng;
 use std::fmt;
 
 // TODO is this a System?
@@ -23,29 +25,74 @@ impl Game {
         }
     }
 
-    fn get_valid_moves(&self, pos: &PositionComponent) -> (Vec<f64>, Vec<f64>) {
+    fn get_weighted_valid_moves(
+        &self,
+        pos: &PositionComponent,
+        direction: &DirectionComponent,
+    ) -> Vec<(u32, PositionComponent)> {
         // assume square map
         const MOVE_DISTANCE: f64 = 1.0;
-        let mut valid_moves_x: Vec<f64> = vec![];
-        let mut valid_moves_y: Vec<f64> = vec![];
+        let mut valid_moves = vec![];
 
-        if pos.x - MOVE_DISTANCE >= 0.0 {
-            valid_moves_x.push(-MOVE_DISTANCE);
-        }
-
-        if pos.x + MOVE_DISTANCE < self.width {
-            valid_moves_x.push(MOVE_DISTANCE);
-        }
-
+        // Up
         if pos.y - MOVE_DISTANCE >= 0.0 {
-            valid_moves_y.push(-MOVE_DISTANCE);
+            valid_moves.push((
+                0,
+                PositionComponent {
+                    x: 0.0,
+                    y: -MOVE_DISTANCE,
+                },
+            ));
         }
 
+        // Down
         if pos.y + MOVE_DISTANCE < self.height {
-            valid_moves_y.push(MOVE_DISTANCE);
+            valid_moves.push((
+                0,
+                PositionComponent {
+                    x: 0.0,
+                    y: MOVE_DISTANCE,
+                },
+            ));
         }
 
-        (valid_moves_x, valid_moves_y)
+        // Left
+        if pos.x - MOVE_DISTANCE >= 0.0 {
+            valid_moves.push((
+                0,
+                PositionComponent {
+                    x: -MOVE_DISTANCE,
+                    y: 0.0,
+                },
+            ));
+        }
+
+        // Right
+        if pos.x + MOVE_DISTANCE < self.width {
+            valid_moves.push((
+                0,
+                PositionComponent {
+                    x: MOVE_DISTANCE,
+                    y: 0.0,
+                },
+            ));
+        }
+
+        // 80%: same direction
+        //  9%: go right
+        //  9%: go left
+        //  2%: go back
+        for m in valid_moves.iter_mut() {
+            if m.1.x == direction.x && m.1.y == direction.y {
+                m.0 = 60;
+            } else if m.1.x == direction.x || m.1.y == direction.y {
+                m.0 = 18;
+            } else {
+                m.0 = 4;
+            }
+        }
+
+        valid_moves
     }
 
     fn handle_new_ant_pos(&mut self, ant_id: &EntityIndex, new_pos: &PositionComponent) {
@@ -67,7 +114,7 @@ impl Game {
                         new_releasing_ph_components.push((
                             *ant_id,
                             ReleasingPheromoneComponent {
-                                ticks_left: 4,
+                                ticks_left: 8,
                                 ph_type: PheromoneType::Food,
                             },
                         ));
@@ -131,7 +178,7 @@ impl Game {
                 match releasing_pheromone_comp.ph_type {
                     PheromoneType::Food => {
                         let ant_pos = self.entity_store.get_position(ant_id).unwrap().clone();
-                        let intensity = self.merge_and_clear_pheromones(&ant_pos, 4);
+                        let intensity = self.merge_and_clear_pheromones(&ant_pos, 8);
 
                         // TODO create pheromone_types component BTreeMap in entity store
                         let ph_id = self.entity_store.create_entity(&EntityType::Pheromone);
@@ -149,11 +196,16 @@ impl Game {
             let mut new_pos = PositionComponent::default();
 
             if let Some(pos) = self.entity_store.get_position(ant_id) {
-                let (valid_moves_x, valid_moves_y) = self.get_valid_moves(pos);
-                let x_delta = valid_moves_x.choose(&mut self.rng).unwrap_or(&0.0);
-                let y_delta = valid_moves_y.choose(&mut self.rng).unwrap_or(&0.0);
-                new_pos.x = pos.x + x_delta;
-                new_pos.y = pos.y + y_delta;
+                let direction = self
+                    .entity_store
+                    .get_direction(ant_id)
+                    .unwrap_or(&DirectionComponent { x: 1.0, y: 0.0 });
+                let valid_moves = self.get_weighted_valid_moves(pos, direction);
+                let weighted_index =
+                    WeightedIndex::new(valid_moves.iter().map(|item| item.0)).unwrap();
+                let random_move = &valid_moves[weighted_index.sample(&mut self.rng)].1;
+                new_pos.x = pos.x + random_move.x;
+                new_pos.y = pos.y + random_move.y;
                 new_positions.push((*ant_id, new_pos.clone()));
             }
         }

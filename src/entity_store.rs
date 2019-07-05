@@ -15,8 +15,9 @@ pub struct EntityStore {
     pub sugars: BTreeMap<EntityIndex, SugarEntity>,
 
     // Components
-    pub positions: BTreeMap<EntityIndex, PositionComponent>,
-    pub positions_lookup: BTreeMap<PositionComponent, HashSet<EntityIndex>>,
+    positions: BTreeMap<EntityIndex, PositionComponent>,
+    positions_lookup: BTreeMap<PositionComponent, HashSet<EntityIndex>>,
+    directions: BTreeMap<EntityIndex, DirectionComponent>,
     pub edibles: BTreeMap<EntityIndex, EdibleComponent>,
     pub releasing_pheromones: BTreeMap<EntityIndex, ReleasingPheromoneComponent>,
     pub intensities: BTreeMap<EntityIndex, IntensityComponent>,
@@ -32,6 +33,10 @@ impl EntityStore {
         self.positions.get(id)
     }
 
+    pub fn get_direction(&self, id: &EntityIndex) -> Option<&DirectionComponent> {
+        self.directions.get(id)
+    }
+
     pub fn get_entities_at(&self, search_pos: &PositionComponent) -> Option<&HashSet<EntityIndex>> {
         self.positions_lookup.get(search_pos)
     }
@@ -39,6 +44,14 @@ impl EntityStore {
     pub fn update_position(&mut self, id: &EntityIndex, new_pos: &PositionComponent) {
         let old_pos = self.positions.get(&id);
         if let Some(old_pos) = old_pos {
+            self.directions.insert(
+                *id,
+                DirectionComponent {
+                    x: new_pos.x - old_pos.x,
+                    y: new_pos.y - old_pos.y,
+                },
+            );
+
             if let Some(entities) = self.positions_lookup.get_mut(&old_pos) {
                 entities.remove(&id);
 
@@ -70,6 +83,7 @@ impl EntityStore {
         }
 
         self.positions.remove(&id);
+        self.directions.remove(&id);
     }
 
     pub fn create_entity(&mut self, entity_type: &EntityType) -> EntityIndex {
