@@ -34,10 +34,7 @@ impl Game {
             r = normal.sample(&mut rand::thread_rng());
         }
 
-        r += 1.0; // [0, 2], centered around 1
-        r *= PI; // [0, 2pi], centered around pi
-        r -= PI; // [-pi, pi] centered around 0
-
+        r *= PI; // [-pi, pi], centered around pi
         r += direction.y.atan2(direction.x);
 
         DirectionComponent {
