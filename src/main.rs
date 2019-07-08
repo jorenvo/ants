@@ -15,7 +15,7 @@ use game::*;
 fn main() {
     let mut game = Game::init(EntityStore::default(), 10.0, 10.0);
 
-    for _ in 0..50 {
+    for _ in 0..1 {
         game.entity_store.create_entity(&EntityType::Ant);
     }
 

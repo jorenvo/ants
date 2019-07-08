@@ -2,9 +2,9 @@ use crate::components::*;
 use crate::entities::*;
 use crate::entity_store::*;
 use colored::*;
-use rand::distributions::Distribution;
-use rand::distributions::WeightedIndex;
 use rand::prelude::SeedableRng;
+use rand_distr::{Distribution, Normal};
+use std::f64::consts::PI;
 use std::fmt;
 
 // TODO is this a System?
@@ -25,70 +25,43 @@ impl Game {
         }
     }
 
-    fn get_weighted_valid_moves(
+    fn calc_random_direction(&self, direction: &DirectionComponent) -> DirectionComponent {
+        let std_dev = 1.0 / 3.0; // 99.7% is within 3x std dev
+        let normal = Normal::new(0.0, std_dev).unwrap();
+        let mut r = -999.;
+
+        while r < -1.0 || r > 1.0 {
+            r = normal.sample(&mut rand::thread_rng());
+        }
+
+        r += 1.0; // [0, 2], centered around 1
+        r *= PI; // [0, 2pi], centered around pi
+        r -= PI; // [-pi, pi] centered around 0
+
+        r += direction.y.atan2(direction.x);
+
+        DirectionComponent {
+            x: r.cos(),
+            y: r.sin(),
+        }
+    }
+
+    fn get_random_direction(
         &self,
         pos: &PositionComponent,
         direction: &DirectionComponent,
-    ) -> Vec<(u32, PositionComponent)> {
-        // assume square map
-        const MOVE_DISTANCE: f64 = 1.0;
-        let mut valid_moves = vec![];
+    ) -> DirectionComponent {
+        let mut dir = self.calc_random_direction(direction);
 
-        // Up
-        if pos.y - MOVE_DISTANCE >= 0.0 {
-            valid_moves.push((
-                0,
-                PositionComponent {
-                    x: 0.0,
-                    y: -MOVE_DISTANCE,
-                },
-            ));
+        while pos.x + dir.x < 0.0
+            || pos.y + dir.y < 0.0
+            || pos.x + dir.x >= self.width
+            || pos.y + dir.y >= self.height
+        {
+            dir = self.calc_random_direction(direction);
         }
 
-        // Down
-        if pos.y + MOVE_DISTANCE < self.height {
-            valid_moves.push((
-                0,
-                PositionComponent {
-                    x: 0.0,
-                    y: MOVE_DISTANCE,
-                },
-            ));
-        }
-
-        // Left
-        if pos.x - MOVE_DISTANCE >= 0.0 {
-            valid_moves.push((
-                0,
-                PositionComponent {
-                    x: -MOVE_DISTANCE,
-                    y: 0.0,
-                },
-            ));
-        }
-
-        // Right
-        if pos.x + MOVE_DISTANCE < self.width {
-            valid_moves.push((
-                0,
-                PositionComponent {
-                    x: MOVE_DISTANCE,
-                    y: 0.0,
-                },
-            ));
-        }
-
-        for m in valid_moves.iter_mut() {
-            if m.1.x == direction.x && m.1.y == direction.y {
-                m.0 = 60;
-            } else if m.1.x == direction.x || m.1.y == direction.y {
-                m.0 = 18;
-            } else {
-                m.0 = 4;
-            }
-        }
-
-        valid_moves
+        dir
     }
 
     fn handle_new_ant_pos(&mut self, ant_id: &EntityIndex, new_pos: &PositionComponent) {
@@ -196,12 +169,14 @@ impl Game {
                     .entity_store
                     .get_direction(ant_id)
                     .unwrap_or(&DirectionComponent { x: 1.0, y: 0.0 });
-                let valid_moves = self.get_weighted_valid_moves(pos, direction);
-                let weighted_index =
-                    WeightedIndex::new(valid_moves.iter().map(|item| item.0)).unwrap();
-                let random_move = &valid_moves[weighted_index.sample(&mut self.rng)].1;
-                new_pos.x = pos.x + random_move.x;
-                new_pos.y = pos.y + random_move.y;
+                let random_direction = self.get_random_direction(pos, direction);
+                new_pos.x = pos.x + random_direction.x;
+                new_pos.y = pos.y + random_direction.y;
+
+                // round to 0.01
+                new_pos.x = (new_pos.x * 100.0).round() / 100.0;
+                new_pos.y = (new_pos.y * 100.0).round() / 100.0;
+
                 new_positions.push((*ant_id, new_pos.clone()));
             }
         }

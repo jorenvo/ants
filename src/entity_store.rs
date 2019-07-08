@@ -16,7 +16,7 @@ pub struct EntityStore {
 
     // Components
     positions: BTreeMap<EntityIndex, PositionComponent>,
-    positions_lookup: BTreeMap<PositionComponent, HashSet<EntityIndex>>,
+    positions_lookup: BTreeMap<CoarsePositionComponent, HashSet<EntityIndex>>,
     directions: BTreeMap<EntityIndex, DirectionComponent>,
     pub edibles: BTreeMap<EntityIndex, EdibleComponent>,
     pub releasing_pheromones: BTreeMap<EntityIndex, ReleasingPheromoneComponent>,
@@ -38,7 +38,8 @@ impl EntityStore {
     }
 
     pub fn get_entities_at(&self, search_pos: &PositionComponent) -> Option<&HashSet<EntityIndex>> {
-        self.positions_lookup.get(search_pos)
+        self.positions_lookup
+            .get(&CoarsePositionComponent::from(search_pos))
     }
 
     pub fn update_position(&mut self, id: &EntityIndex, new_pos: &PositionComponent) {
@@ -52,33 +53,48 @@ impl EntityStore {
                 },
             );
 
-            if let Some(entities) = self.positions_lookup.get_mut(&old_pos) {
+            if let Some(entities) = self
+                .positions_lookup
+                .get_mut(&CoarsePositionComponent::from(old_pos))
+            {
                 entities.remove(&id);
 
                 if entities.is_empty() {
-                    self.positions_lookup.remove(&old_pos);
+                    self.positions_lookup
+                        .remove(&CoarsePositionComponent::from(old_pos));
                 }
             }
         }
 
         self.positions.insert(*id, new_pos.clone());
 
-        if self.positions_lookup.get(new_pos).is_none() {
+        if self
+            .positions_lookup
+            .get(&CoarsePositionComponent::from(new_pos))
+            .is_none()
+        {
             self.positions_lookup
-                .insert(new_pos.clone(), HashSet::new());
+                .insert(CoarsePositionComponent::from(new_pos), HashSet::new());
         }
 
-        self.positions_lookup.get_mut(new_pos).unwrap().insert(*id);
+        self.positions_lookup
+            .get_mut(&CoarsePositionComponent::from(new_pos))
+            .unwrap()
+            .insert(*id);
     }
 
     pub fn remove_position(&mut self, id: &EntityIndex) {
         if let Some(pos) = self.get_position(&id) {
             let cloned_pos = pos.clone();
-            let entities = self.positions_lookup.get_mut(&cloned_pos).unwrap();
+            let entities = self
+                .positions_lookup
+                .get_mut(&CoarsePositionComponent::from(&cloned_pos))
+                .unwrap();
             entities.remove(&id);
 
             if entities.is_empty() {
-                self.positions_lookup.remove(&cloned_pos);
+                self.positions_lookup
+                    .remove(&CoarsePositionComponent::from(&cloned_pos));
             }
         }
 

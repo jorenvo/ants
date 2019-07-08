@@ -34,6 +34,56 @@ impl Ord for PositionComponent {
     }
 }
 
+#[derive(Clone, Debug, Default)]
+pub struct CoarsePositionComponent {
+    pub x: u64,
+    pub y: u64,
+}
+
+impl PartialEq for CoarsePositionComponent {
+    fn eq(&self, other: &Self) -> bool {
+        self.cmp(other) == Ordering::Equal
+    }
+}
+
+impl Eq for CoarsePositionComponent {}
+
+impl PartialOrd for CoarsePositionComponent {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for CoarsePositionComponent {
+    fn cmp(&self, other: &Self) -> Ordering {
+        let ordering_y = self.y.cmp(&other.y);
+
+        if ordering_y == Ordering::Equal {
+            self.x.cmp(&other.x)
+        } else {
+            ordering_y
+        }
+    }
+}
+
+impl From<PositionComponent> for CoarsePositionComponent {
+    fn from(pos: PositionComponent) -> Self {
+        CoarsePositionComponent {
+            x: pos.x.floor() as u64,
+            y: pos.y.floor() as u64,
+        }
+    }
+}
+
+impl From<&PositionComponent> for CoarsePositionComponent {
+    fn from(pos: &PositionComponent) -> Self {
+        CoarsePositionComponent {
+            x: pos.x.floor() as u64,
+            y: pos.y.floor() as u64,
+        }
+    }
+}
+
 #[derive(PartialEq, Debug, Default)]
 pub struct EdibleComponent {}
 
