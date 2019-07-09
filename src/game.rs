@@ -28,11 +28,7 @@ impl Game {
     fn calc_random_direction(&self, direction: &DirectionComponent) -> DirectionComponent {
         let std_dev = 1.0 / 3.0; // 99.7% is within 3x std dev
         let normal = Normal::new(0.0, std_dev).unwrap();
-        let mut r = -999.;
-
-        while r < -1.0 || r > 1.0 {
-            r = normal.sample(&mut rand::thread_rng());
-        }
+        let mut r = normal.sample(&mut rand::thread_rng());
 
         r *= PI; // [-pi, pi], centered around pi
         r += direction.y.atan2(direction.x);
@@ -65,11 +61,13 @@ impl Game {
         let entities_at_new_pos = self.entity_store.get_entities_at(&new_pos);
         let mut new_releasing_ph_components: Vec<(EntityIndex, ReleasingPheromoneComponent)> =
             vec![];
+        let mut new_sensed_pheromones: Vec<(EntityIndex, EntityIndex)> = vec![];
 
         if let Some(entities_at_new_pos) = entities_at_new_pos {
             for id in entities_at_new_pos {
                 match self.entity_store.entity_types.get(id) {
                     Some(EntityType::Pheromone) => {
+                        new_sensed_pheromones.push((*ant_id, *id));
                         println!(
                             "ant {} and pheromone {} at position {:?}",
                             ant_id, id, new_pos
@@ -88,6 +86,10 @@ impl Game {
                     _ => {}
                 }
             }
+        }
+
+        for (id, ph_id) in new_sensed_pheromones {
+            self.entity_store.sensed_pheromones.insert(id, ph_id);
         }
 
         for (id, comp) in new_releasing_ph_components {
@@ -134,6 +136,8 @@ impl Game {
     }
 
     fn release_pheromones(&mut self, ant_id: &EntityIndex) {
+        const NEW_PHEROMONE_STRENGTH: u32 = 64;
+
         if let Some(releasing_pheromone_comp) =
             self.entity_store.releasing_pheromones.get_mut(ant_id)
         {
@@ -144,7 +148,8 @@ impl Game {
                 match releasing_pheromone_comp.ph_type {
                     PheromoneType::Food => {
                         let ant_pos = self.entity_store.get_position(ant_id).unwrap().clone();
-                        let intensity = self.merge_and_clear_pheromones(&ant_pos, 8);
+                        let intensity =
+                            self.merge_and_clear_pheromones(&ant_pos, NEW_PHEROMONE_STRENGTH);
 
                         // TODO create pheromone_types component BTreeMap in entity store
                         let ph_id = self.entity_store.create_entity(&EntityType::Pheromone);
@@ -186,20 +191,46 @@ impl Game {
     }
 
     fn pheromones(&mut self) {
+        let mut new_pheromones: Vec<(PositionComponent, IntensityComponent)> = vec![];
         let mut evaporated_pheromones = vec![];
+
         for (ph_id, _) in &self.entity_store.pheromones {
             let intensity = self.entity_store.intensities.get_mut(&ph_id).unwrap();
-            intensity.strength -= 1;
+            let strength_to_spread = (intensity.strength as f64 * 0.25).ceil() as u32;
+            intensity.strength -= strength_to_spread;
 
             if intensity.strength == 0 {
                 self.entity_store.intensities.remove(&ph_id);
                 evaporated_pheromones.push(ph_id.clone());
+            }
+
+            if strength_to_spread >= 8 {
+                let pos = self.entity_store.get_position(ph_id).unwrap();
+                for i in 0..8 {
+                    let angle = PI / 4.0 * i as f64;
+                    new_pheromones.push((
+                        PositionComponent {
+                            x: pos.x + angle.cos(),
+                            y: pos.y + angle.sin(),
+                        },
+                        IntensityComponent {
+                            strength: strength_to_spread / 8,
+                        },
+                    ));
+                }
             }
         }
 
         for ph_id in evaporated_pheromones {
             self.entity_store.remove_position(&ph_id);
             self.entity_store.pheromones.remove(&ph_id);
+        }
+
+        for (pos, intensity) in new_pheromones {
+            let intensity = self.merge_and_clear_pheromones(&pos, intensity.strength);
+            let ph_id = self.entity_store.create_entity(&EntityType::Pheromone);
+            self.entity_store.update_position(&ph_id, &pos);
+            self.entity_store.intensities.insert(ph_id, intensity);
         }
     }
 
