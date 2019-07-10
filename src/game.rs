@@ -135,6 +135,19 @@ impl Game {
         intensity
     }
 
+    fn increase_pheromone_strength_at(
+        &mut self,
+        pos: &PositionComponent,
+        intensity: &IntensityComponent,
+    ) -> EntityIndex {
+        let intensity = self.merge_and_clear_pheromones(&pos, intensity.strength);
+        let ph_id = self.entity_store.create_entity(&EntityType::Pheromone);
+        self.entity_store.update_position(&ph_id, &pos);
+        self.entity_store.intensities.insert(ph_id, intensity);
+
+        ph_id
+    }
+
     fn release_pheromones(&mut self, ant_id: &EntityIndex) {
         const NEW_PHEROMONE_STRENGTH: u32 = 64;
 
@@ -148,13 +161,12 @@ impl Game {
                 match releasing_pheromone_comp.ph_type {
                     PheromoneType::Food => {
                         let ant_pos = self.entity_store.get_position(ant_id).unwrap().clone();
-                        let intensity =
-                            self.merge_and_clear_pheromones(&ant_pos, NEW_PHEROMONE_STRENGTH);
-
-                        // TODO create pheromone_types component BTreeMap in entity store
-                        let ph_id = self.entity_store.create_entity(&EntityType::Pheromone);
-                        self.entity_store.update_position(&ph_id, &ant_pos);
-                        self.entity_store.intensities.insert(ph_id, intensity);
+                        self.increase_pheromone_strength_at(
+                            &ant_pos,
+                            &IntensityComponent {
+                                strength: NEW_PHEROMONE_STRENGTH,
+                            },
+                        );
                     }
                 }
             }
@@ -227,10 +239,7 @@ impl Game {
         }
 
         for (pos, intensity) in new_pheromones {
-            let intensity = self.merge_and_clear_pheromones(&pos, intensity.strength);
-            let ph_id = self.entity_store.create_entity(&EntityType::Pheromone);
-            self.entity_store.update_position(&ph_id, &pos);
-            self.entity_store.intensities.insert(ph_id, intensity);
+            self.increase_pheromone_strength_at(&pos, &intensity);
         }
     }
 
