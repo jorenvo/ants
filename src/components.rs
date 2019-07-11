@@ -111,6 +111,6 @@ pub struct DirectionComponent {
 }
 
 #[derive(PartialEq, Debug)]
-pub struct SensedPheromone {
+pub struct SensedPheromoneComponent {
     pub id: EntityIndex,
 }
