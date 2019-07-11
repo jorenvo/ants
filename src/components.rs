@@ -1,5 +1,4 @@
 use crate::entities::*;
-use crate::entity_store::*;
 use crate::utils::*;
 use std::cmp::Ordering;
 
@@ -108,9 +107,4 @@ pub struct ReleasingPheromoneComponent {
 pub struct DirectionComponent {
     pub x: f64,
     pub y: f64,
-}
-
-#[derive(PartialEq, Debug)]
-pub struct SensedPheromoneComponent {
-    pub id: EntityIndex,
 }

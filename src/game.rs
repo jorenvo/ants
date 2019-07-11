@@ -88,13 +88,6 @@ impl Game {
             }
         }
 
-        self.entity_store.sensed_pheromones.clear();
-        for (id, ph_id) in new_sensed_pheromones {
-            self.entity_store
-                .sensed_pheromones
-                .insert(id, SensedPheromoneComponent { id: ph_id });
-        }
-
         for (id, comp) in new_releasing_ph_components {
             self.entity_store.releasing_pheromones.insert(id, comp);
         }
