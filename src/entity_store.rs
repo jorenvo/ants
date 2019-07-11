@@ -42,6 +42,22 @@ impl EntityStore {
             .get(&CoarsePositionComponent::from(search_pos))
     }
 
+    pub fn get_entity_type_at(
+        &self,
+        search_pos: &PositionComponent,
+        entity_type: &EntityType,
+    ) -> Option<EntityIndex> {
+        if let Some(ids) = self.get_entities_at(search_pos) {
+            for id in ids {
+                if self.entity_types.get(&id).unwrap() == entity_type {
+                    return Some(*id);
+                }
+            }
+        }
+
+        None
+    }
+
     pub fn update_position(&mut self, id: &EntityIndex, new_pos: &PositionComponent) {
         let old_pos = self.positions.get(&id);
         if let Some(old_pos) = old_pos {

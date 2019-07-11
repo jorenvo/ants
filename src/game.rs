@@ -39,13 +39,63 @@ impl Game {
         }
     }
 
-    fn get_random_direction(
+    fn dir_to_strongest_adjecent_pheromone(
+        &self,
+        pos: &PositionComponent,
+    ) -> Option<DirectionComponent> {
+        let mut directions = vec![(1, 0), (-1, 0), (0, 1), (0, -1)];
+        let diagonals = [1, -1];
+        for i in diagonals.iter() {
+            for j in diagonals.iter() {
+                directions.push((*i, *j));
+            }
+        }
+
+        let positions = directions.iter().map(|d| PositionComponent {
+            x: pos.x + d.0 as f64,
+            y: pos.y + d.1 as f64,
+        });
+
+        let mut strength_to_dir = vec![];
+        for new_pos in positions {
+            if let Some(ph_id) = self
+                .entity_store
+                .get_entity_type_at(&new_pos, &EntityType::Pheromone)
+            {
+                let intensity = self.entity_store.intensities.get(&ph_id).unwrap();
+                strength_to_dir.push((
+                    intensity.strength,
+                    DirectionComponent {
+                        x: new_pos.x - pos.x,
+                        y: new_pos.y - pos.y,
+                    },
+                ));
+            }
+        }
+
+        if strength_to_dir.len() > 1 {
+            Some(strength_to_dir.into_iter().max_by_key(|e| e.0).unwrap().1)
+        } else {
+            None
+        }
+    }
+
+    fn get_new_ant_direction(
         &self,
         pos: &PositionComponent,
         direction: &DirectionComponent,
     ) -> DirectionComponent {
-        let mut dir = self.calc_random_direction(direction);
+        if self
+            .entity_store
+            .get_entity_type_at(&pos, &EntityType::Pheromone)
+            .is_some()
+        {
+            if let Some(dir) = self.dir_to_strongest_adjecent_pheromone(pos) {
+                return dir;
+            }
+        }
 
+        let mut dir = self.calc_random_direction(direction);
         while pos.x + dir.x < 0.0
             || pos.y + dir.y < 0.0
             || pos.x + dir.x >= self.width
@@ -178,9 +228,9 @@ impl Game {
                 .entity_store
                 .get_direction(ant_id)
                 .unwrap_or(&DirectionComponent { x: 1.0, y: 0.0 });
-            let random_direction = self.get_random_direction(pos, direction);
-            new_pos.x = pos.x + random_direction.x;
-            new_pos.y = pos.y + random_direction.y;
+            let direction = self.get_new_ant_direction(pos, direction);
+            new_pos.x = pos.x + direction.x;
+            new_pos.y = pos.y + direction.y;
 
             // round to 0.01
             new_pos.x = (new_pos.x * 100.0).round() / 100.0;
