@@ -173,22 +173,20 @@ impl Game {
         let mut new_positions: Vec<(EntityIndex, PositionComponent)> = vec![];
         for (ant_id, _) in &self.entity_store.ants {
             let mut new_pos = PositionComponent::default();
+            let pos = self.entity_store.get_position(ant_id).unwrap();
+            let direction = self
+                .entity_store
+                .get_direction(ant_id)
+                .unwrap_or(&DirectionComponent { x: 1.0, y: 0.0 });
+            let random_direction = self.get_random_direction(pos, direction);
+            new_pos.x = pos.x + random_direction.x;
+            new_pos.y = pos.y + random_direction.y;
 
-            if let Some(pos) = self.entity_store.get_position(ant_id) {
-                let direction = self
-                    .entity_store
-                    .get_direction(ant_id)
-                    .unwrap_or(&DirectionComponent { x: 1.0, y: 0.0 });
-                let random_direction = self.get_random_direction(pos, direction);
-                new_pos.x = pos.x + random_direction.x;
-                new_pos.y = pos.y + random_direction.y;
+            // round to 0.01
+            new_pos.x = (new_pos.x * 100.0).round() / 100.0;
+            new_pos.y = (new_pos.y * 100.0).round() / 100.0;
 
-                // round to 0.01
-                new_pos.x = (new_pos.x * 100.0).round() / 100.0;
-                new_pos.y = (new_pos.y * 100.0).round() / 100.0;
-
-                new_positions.push((*ant_id, new_pos.clone()));
-            }
+            new_positions.push((*ant_id, new_pos.clone()));
         }
 
         for (ant_id, pos) in new_positions {
