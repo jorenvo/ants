@@ -13,6 +13,7 @@ pub struct EntityStore {
     pub ants: BTreeMap<EntityIndex, AntEntity>,
     pub pheromones: BTreeMap<EntityIndex, PheromoneEntity>,
     pub sugars: BTreeMap<EntityIndex, SugarEntity>,
+    pub bases: BTreeMap<EntityIndex, BaseEntity>,
 
     // Components
     positions: BTreeMap<EntityIndex, PositionComponent>,
@@ -21,6 +22,7 @@ pub struct EntityStore {
     pub edibles: BTreeMap<EntityIndex, EdibleComponent>,
     pub releasing_pheromones: BTreeMap<EntityIndex, ReleasingPheromoneComponent>,
     pub intensities: BTreeMap<EntityIndex, IntensityComponent>,
+    pub pheromone_types: BTreeMap<EntityIndex, PheromoneType>,
 }
 
 impl EntityStore {
@@ -130,9 +132,13 @@ impl EntityStore {
                 self.pheromones.insert(index, PheromoneEntity {});
             }
             EntityType::Sugar => {
-                self.update_position(&index, &PositionComponent { x: 5.0, y: 5.0 });
+                self.update_position(&index, &PositionComponent { x: 8.0, y: 8.0 });
                 self.edibles.insert(index, EdibleComponent::default());
                 self.sugars.insert(index, SugarEntity {});
+            }
+            EntityType::Base => {
+                self.update_position(&index, &PositionComponent { x: 0.0, y: 0.0 });
+                self.bases.insert(index, BaseEntity {});
             }
         }
         self.entity_types.insert(index, entity_type.clone());

@@ -19,10 +19,11 @@ fn main() {
         game.entity_store.create_entity(&EntityType::Ant);
     }
 
+    game.entity_store.create_entity(&EntityType::Base);
     game.entity_store.create_entity(&EntityType::Sugar);
 
     for _ in 0..300 {
-        game.tick();
         println!("{}", game);
+        game.tick();
     }
 }

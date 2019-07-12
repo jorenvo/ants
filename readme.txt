@@ -1,6 +1,6 @@
 Todo
 ----
-- Pheromones should diffuse in the environment: https://en.wikipedia.org/wiki/Trail_pheromone
+- Check all .clone() calls and derive Copy where it makes sense 
 
 Pre-commit hook
 ---------------
