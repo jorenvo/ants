@@ -108,3 +108,6 @@ pub struct DirectionComponent {
     pub x: f64,
     pub y: f64,
 }
+
+#[derive(PartialEq, Debug, Default)]
+pub struct CarryingFoodComponent {}

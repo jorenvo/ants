@@ -23,6 +23,7 @@ pub struct EntityStore {
     pub releasing_pheromones: BTreeMap<EntityIndex, ReleasingPheromoneComponent>,
     pub intensities: BTreeMap<EntityIndex, IntensityComponent>,
     pub pheromone_types: BTreeMap<EntityIndex, PheromoneType>,
+    pub carrying_food: BTreeMap<EntityIndex, CarryingFoodComponent>,
 }
 
 impl EntityStore {
