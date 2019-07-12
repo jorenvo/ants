@@ -1,6 +1,6 @@
 Todo
 ----
-- Check all .clone() calls and derive Copy where it makes sense 
+- Check all .clone() calls and derive Copy where it makes sense, also get rid of &
 
 Pre-commit hook
 ---------------

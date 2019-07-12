@@ -44,20 +44,50 @@ impl EntityStore {
             .get(&CoarsePositionComponent::from(search_pos))
     }
 
-    pub fn get_entity_type_at(
+    pub fn get_entities_with_type_at(
         &self,
         search_pos: &PositionComponent,
         entity_type: &EntityType,
-    ) -> Option<EntityIndex> {
+    ) -> Option<HashSet<EntityIndex>> {
         if let Some(ids) = self.get_entities_at(search_pos) {
+            let mut results = HashSet::new();
             for id in ids {
                 if self.entity_types.get(&id).unwrap() == entity_type {
-                    return Some(*id);
+                    results.insert(*id);
                 }
             }
-        }
 
-        None
+            if !results.is_empty() {
+                Some(results)
+            } else {
+                None
+            }
+        } else {
+            None
+        }
+    }
+
+    pub fn get_pheromone_with_type_at(
+        &self,
+        search_pos: &PositionComponent,
+        pheromone_type: &PheromoneType,
+    ) -> Option<EntityIndex> {
+        if let Some(ph_ids) = self.get_entities_with_type_at(&search_pos, &EntityType::Pheromone) {
+            let ph_id: Vec<EntityIndex> = ph_ids
+                .into_iter()
+                .filter(|id| self.pheromone_types.get(id).unwrap() == pheromone_type)
+                .collect();
+
+            if ph_id.is_empty() {
+                None
+            } else if ph_id.len() > 1 {
+                panic!("More than one food pheromone in the same position!");
+            } else {
+                Some(ph_id[0])
+            }
+        } else {
+            None
+        }
     }
 
     pub fn update_position(&mut self, id: &EntityIndex, new_pos: &PositionComponent) {

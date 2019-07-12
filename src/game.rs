@@ -60,7 +60,7 @@ impl Game {
         for new_pos in positions {
             if let Some(ph_id) = self
                 .entity_store
-                .get_entity_type_at(&new_pos, &EntityType::Pheromone)
+                .get_pheromone_with_type_at(&new_pos, &PheromoneType::Food)
             {
                 let intensity = self.entity_store.intensities.get(&ph_id).unwrap();
                 strength_to_dir.push((
@@ -85,14 +85,13 @@ impl Game {
         pos: &PositionComponent,
         direction: &DirectionComponent,
     ) -> DirectionComponent {
-        if let Some(ph_id) = self
+        if self
             .entity_store
-            .get_entity_type_at(&pos, &EntityType::Pheromone)
+            .get_pheromone_with_type_at(&pos, &PheromoneType::Food)
+            .is_some()
         {
-            if self.entity_store.pheromone_types.get(&ph_id).unwrap() == &PheromoneType::Food {
-                if let Some(dir) = self.dir_to_strongest_adjecent_pheromone(pos) {
-                    return dir;
-                }
+            if let Some(dir) = self.dir_to_strongest_adjecent_pheromone(pos) {
+                return dir;
             }
         }
 
