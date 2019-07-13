@@ -15,15 +15,15 @@ use game::*;
 fn main() {
     let mut game = Game::init(EntityStore::default(), 10.0, 10.0);
 
-    for _ in 0..10 {
+    for _ in 0..5 {
         game.entity_store.create_entity(&EntityType::Ant);
     }
 
     game.entity_store.create_entity(&EntityType::Base);
     game.entity_store.create_entity(&EntityType::Sugar);
 
-    for _ in 0..300 {
-        println!("{}", game);
+    for i in 0..300 {
+        println!("Tick #{}\n{}", i, game);
         game.tick();
     }
 }

@@ -25,6 +25,10 @@ impl Game {
         }
     }
 
+    fn pos_is_in_bounds(&self, pos: &PositionComponent) -> bool {
+        pos.x >= 0.0 && pos.y >= 0.0 && pos.x < self.width && pos.y < self.height
+    }
+
     fn calc_random_direction(&self, direction: &DirectionComponent) -> DirectionComponent {
         let std_dev = 1.0 / 3.0; // 99.7% is within 3x std dev
         let normal = Normal::new(0.0, std_dev).unwrap();
@@ -52,10 +56,13 @@ impl Game {
             }
         }
 
-        let positions = directions.iter().map(|d| PositionComponent {
-            x: pos.x + d.0 as f64,
-            y: pos.y + d.1 as f64,
-        });
+        let positions = directions
+            .iter()
+            .map(|d| PositionComponent {
+                x: pos.x + d.0 as f64,
+                y: pos.y + d.1 as f64,
+            })
+            .filter(|p| self.pos_is_in_bounds(&p));
 
         let mut strength_to_dir = vec![];
         for new_pos in positions {
@@ -110,11 +117,11 @@ impl Game {
         }
 
         let mut dir = self.calc_random_direction(direction);
-        while pos.x + dir.x < 0.0
-            || pos.y + dir.y < 0.0
-            || pos.x + dir.x >= self.width
-            || pos.y + dir.y >= self.height
-        {
+        while !self.pos_is_in_bounds(&PositionComponent {
+            x: pos.x + dir.x,
+            y: pos.y + dir.y,
+        }) {
+            println!("new random dir for ant {} at pos {:?}", ant_id, pos);
             dir = self.calc_random_direction(direction);
         }
 
@@ -129,7 +136,7 @@ impl Game {
 
         if let Some(entities_at_new_pos) = entities_at_new_pos {
             for id in entities_at_new_pos {
-                const TICKS: u32 = 3;
+                const TICKS: u32 = 2;
                 match self.entity_store.entity_types.get(id) {
                     Some(EntityType::Pheromone) => {
                         new_sensed_pheromones.push((*ant_id, *id));
@@ -377,10 +384,12 @@ impl fmt::Display for Game {
         for row in 0..integer_height {
             let mut row_1 = String::new();
             let mut row_2 = String::new();
+            let mut row_3 = String::new();
             for col in 0..integer_width {
                 let mut cell_color = "white";
-                let mut cell_value_row_1: String = "    ".to_string();;
-                let mut cell_value_row_2: String = "    ".to_string();;
+                let mut cell_value_row_1: String = "    ".to_string();
+                let mut cell_value_row_2: String = "    ".to_string();
+                let mut cell_value_row_3: String = "    ".to_string();
                 let pos = PositionComponent {
                     x: col as f64,
                     y: row as f64,
@@ -393,6 +402,10 @@ impl fmt::Display for Game {
                                 cell_value_row_1 = "◆".to_string()
                                     + &cell_value_row_1
                                         [cell_value_row_1.char_indices().nth(1).unwrap().0..];
+
+                                if self.entity_store.carrying_food.get(&id).is_some() {
+                                    cell_color = "yellow";
+                                }
                             }
                             Some(EntityType::Sugar) => {
                                 cell_value_row_1 = "■■■■".to_string();
@@ -403,10 +416,20 @@ impl fmt::Display for Game {
                                 cell_color = "blue";
                             }
                             Some(EntityType::Pheromone) => {
-                                cell_value_row_2 = format!(
-                                    "{:04}",
-                                    self.entity_store.intensities.get(id).unwrap().strength
-                                );
+                                match self.entity_store.pheromone_types.get(&id).unwrap() {
+                                    PheromoneType::Food => {
+                                        cell_value_row_2 = format!(
+                                            "{:04}",
+                                            self.entity_store.intensities.get(id).unwrap().strength
+                                        );
+                                    }
+                                    PheromoneType::Base => {
+                                        cell_value_row_3 = format!(
+                                            "{:04}",
+                                            self.entity_store.intensities.get(id).unwrap().strength
+                                        );
+                                    }
+                                }
                             }
                             _ => {}
                         }
@@ -414,10 +437,12 @@ impl fmt::Display for Game {
                 }
                 row_1 += &format!("|{}", cell_value_row_1.color(cell_color));
                 row_2 += &format!("|{}", cell_value_row_2.color(cell_color));
+                row_3 += &format!("|{}", cell_value_row_3.color(cell_color));
             }
 
             writeln!(f, "{}|", row_1)?;
             writeln!(f, "{}|", row_2)?;
+            writeln!(f, "{}|", row_3)?;
             writeln!(f, "{}", separator)?;
         }
 
