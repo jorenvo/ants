@@ -3,10 +3,16 @@ use crate::entity_store::PheromoneGenerationNr;
 use crate::utils::*;
 use std::cmp::Ordering;
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug)]
 pub struct PositionComponent {
     pub x: f64,
     pub y: f64,
+}
+
+impl Default for PositionComponent {
+    fn default() -> Self {
+        Self { x: 0.5, y: 0.5 }
+    }
 }
 
 impl PartialEq for PositionComponent {
