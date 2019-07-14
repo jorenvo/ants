@@ -363,9 +363,7 @@ impl Game {
                 };
                 let generation = self.entity_store.pheromone_generations.get(&ph_id).unwrap();
 
-                if self.pos_is_in_bounds(&new_pos)
-                    && !self.pos_is_occupied_by_older_generation(&new_pos, &generation, &ph_type)
-                {
+                if !self.pos_is_occupied_by_older_generation(&new_pos, &generation, &ph_type) {
                     current_new_pheromones.push((
                         new_pos,
                         self.entity_store
@@ -387,16 +385,18 @@ impl Game {
                 let strength_per_new_pheromone =
                     strength_to_spread / current_new_pheromones.len() as u32;
 
-                intensity.strength -= (intensity.strength as f64 * 0.25).ceil() as u32;;
+                intensity.strength -= (intensity.strength as f64 * 0.20).ceil() as u32;;
                 if strength_per_new_pheromone > 0 {
                     for (pos, ph_type) in current_new_pheromones {
-                        new_pheromones.push((
-                            pos,
-                            ph_type,
-                            IntensityComponent {
-                                strength: strength_per_new_pheromone,
-                            },
-                        ));
+                        if self.pos_is_in_bounds(&pos) {
+                            new_pheromones.push((
+                                pos,
+                                ph_type,
+                                IntensityComponent {
+                                    strength: strength_per_new_pheromone,
+                                },
+                            ));
+                        }
                     }
                 }
             }
