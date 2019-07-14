@@ -354,7 +354,7 @@ impl Game {
             }
 
             let intensity = self.entity_store.intensities.get_mut(&ph_id).unwrap();
-            if intensity.strength == 0 {
+            if intensity.strength < 8 {
                 evaporated_pheromones.push(ph_id.clone());
             }
 
@@ -382,6 +382,7 @@ impl Game {
             self.entity_store.remove_position(&ph_id);
             self.entity_store.intensities.remove(&ph_id);
             self.entity_store.pheromone_types.remove(&ph_id);
+            self.entity_store.pheromone_generations.remove(&ph_id);
             self.entity_store.pheromones.remove(&ph_id);
         }
 
@@ -419,7 +420,8 @@ impl fmt::Display for Game {
 
         let integer_width = self.width.round() as u64;
         let integer_height = self.height.round() as u64;
-        let separator = "|".to_owned() + &(0..integer_width).map(|_| "----|").collect::<String>();
+        let separator =
+            "|".to_owned() + &(0..integer_width).map(|_| "-------|").collect::<String>();
 
         writeln!(f, "{}", separator)?;
         for row in 0..integer_height {
@@ -428,9 +430,9 @@ impl fmt::Display for Game {
             let mut row_3 = String::new();
             for col in 0..integer_width {
                 let mut cell_color = "white";
-                let mut cell_value_row_1: String = "    ".to_string();
-                let mut cell_value_row_2: String = "    ".to_string();
-                let mut cell_value_row_3: String = "    ".to_string();
+                let mut cell_value_row_1: String = "       ".to_string();
+                let mut cell_value_row_2: String = "       ".to_string();
+                let mut cell_value_row_3: String = "       ".to_string();
                 let pos = PositionComponent {
                     x: col as f64,
                     y: row as f64,
@@ -449,24 +451,24 @@ impl fmt::Display for Game {
                                 }
                             }
                             Some(EntityType::Sugar) => {
-                                cell_value_row_1 = "■■■■".to_string();
+                                cell_value_row_1 = "■■■■■■■".to_string();
                                 cell_color = "green";
                             }
                             Some(EntityType::Base) => {
-                                cell_value_row_1 = "■■■■".to_string();
+                                cell_value_row_1 = "■■■■■■■".to_string();
                                 cell_color = "blue";
                             }
                             Some(EntityType::Pheromone) => {
                                 match self.entity_store.pheromone_types.get(&id).unwrap() {
                                     PheromoneType::Food => {
                                         cell_value_row_2 = format!(
-                                            "{:04}",
+                                            "{:7}",
                                             self.entity_store.intensities.get(id).unwrap().strength
                                         );
                                     }
                                     PheromoneType::Base => {
                                         cell_value_row_3 = format!(
-                                            "{:04}",
+                                            "{:7}",
                                             self.entity_store.intensities.get(id).unwrap().strength
                                         );
                                     }
