@@ -303,21 +303,26 @@ impl Game {
     fn ants(&mut self) {
         let mut new_positions: Vec<(EntityIndex, PositionComponent)> = vec![];
         for (ant_id, _) in &self.entity_store.ants {
-            let mut new_pos = PositionComponent::default();
             let pos = self.entity_store.get_position(ant_id).unwrap();
-            let direction = self
-                .entity_store
-                .get_direction(ant_id)
-                .unwrap_or(&DirectionComponent { x: 1.0, y: 0.0 });
-            let direction = self.get_new_ant_direction(ant_id, pos, direction);
-            new_pos.x = pos.x + direction.x;
-            new_pos.y = pos.y + direction.y;
 
-            // round to 0.01
-            new_pos.x = (new_pos.x * 100.0).round() / 100.0;
-            new_pos.y = (new_pos.y * 100.0).round() / 100.0;
+            if self.entity_store.builders.get(&ant_id).is_some() {
+                new_positions.push((*ant_id, pos.clone()));
+            } else {
+                let mut new_pos = PositionComponent::default();
+                let direction = self
+                    .entity_store
+                    .get_direction(ant_id)
+                    .unwrap_or(&DirectionComponent { x: 1.0, y: 0.0 });
+                let direction = self.get_new_ant_direction(ant_id, pos, direction);
+                new_pos.x = pos.x + direction.x;
+                new_pos.y = pos.y + direction.y;
 
-            new_positions.push((*ant_id, new_pos.clone()));
+                // round to 0.01
+                new_pos.x = (new_pos.x * 100.0).round() / 100.0;
+                new_pos.y = (new_pos.y * 100.0).round() / 100.0;
+
+                new_positions.push((*ant_id, new_pos.clone()));
+            }
         }
 
         for (ant_id, pos) in new_positions {

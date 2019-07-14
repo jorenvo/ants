@@ -117,3 +117,6 @@ pub struct DirectionComponent {
 
 #[derive(PartialEq, Debug, Default)]
 pub struct CarryingFoodComponent {}
+
+#[derive(PartialEq, Debug, Default)]
+pub struct BuilderComponent {}
