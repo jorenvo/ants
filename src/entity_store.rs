@@ -160,7 +160,7 @@ impl EntityStore {
         let index = self.get_new_index();
         match entity_type {
             EntityType::Ant => {
-                self.update_position(&index, &PositionComponent::default());
+                self.update_position(&index, &PositionComponent { x: 0.5, y: 0.5 });
                 self.ants.insert(index, AntEntity {});
             }
             EntityType::Pheromone => {
