@@ -3,10 +3,13 @@ use crate::entities::*;
 use std::collections::{BTreeMap, HashSet};
 
 pub type EntityIndex = usize;
+pub type PheromoneGenerationNr = u32;
 
 #[derive(Default)]
 pub struct EntityStore {
     pub new_index: EntityIndex,
+    pub pheromone_generation: PheromoneGenerationNr,
+
     pub entity_types: BTreeMap<EntityIndex, EntityType>,
 
     // Entities
@@ -21,6 +24,7 @@ pub struct EntityStore {
     directions: BTreeMap<EntityIndex, DirectionComponent>,
     pub edibles: BTreeMap<EntityIndex, EdibleComponent>,
     pub releasing_pheromones: BTreeMap<EntityIndex, ReleasingPheromoneComponent>,
+    pub pheromone_generations: BTreeMap<EntityIndex, PheromoneGenerationComponent>,
     pub intensities: BTreeMap<EntityIndex, IntensityComponent>,
     pub pheromone_types: BTreeMap<EntityIndex, PheromoneType>,
     pub carrying_food: BTreeMap<EntityIndex, CarryingFoodComponent>,

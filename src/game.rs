@@ -121,7 +121,6 @@ impl Game {
             x: pos.x + dir.x,
             y: pos.y + dir.y,
         }) {
-            println!("new random dir for ant {} at pos {:?}", ant_id, pos);
             dir = self.calc_random_direction(direction);
         }
 
@@ -220,6 +219,7 @@ impl Game {
             self.entity_store.remove_position(&ph);
             self.entity_store.intensities.remove(&ph);
             self.entity_store.pheromone_types.remove(&ph);
+            self.entity_store.pheromone_generations.remove(&ph);
             self.entity_store.pheromones.remove(&ph);
         }
 
@@ -237,6 +237,12 @@ impl Game {
         self.entity_store.update_position(&ph_id, &pos);
         self.entity_store.intensities.insert(ph_id, intensity);
         self.entity_store.pheromone_types.insert(ph_id, *ph_type);
+        self.entity_store.pheromone_generations.insert(
+            ph_id,
+            PheromoneGenerationComponent {
+                generation: self.entity_store.pheromone_generation,
+            },
+        );
 
         ph_id
     }
@@ -304,38 +310,70 @@ impl Game {
         }
     }
 
+    fn pos_is_occupied_by_older_generation(
+        &self,
+        pos: &PositionComponent,
+        ph_type: &PheromoneType,
+    ) -> bool {
+        if let Some(ph_id) = self.entity_store.get_pheromone_with_type_at(&pos, &ph_type) {
+            let generation = self.entity_store.pheromone_generations.get(&ph_id).unwrap();
+            generation.generation <= self.entity_store.pheromone_generation
+        } else {
+            false
+        }
+    }
+
     fn pheromones(&mut self) {
         let mut new_pheromones: Vec<(PositionComponent, PheromoneType, IntensityComponent)> =
             vec![];
         let mut evaporated_pheromones = vec![];
 
         for (ph_id, _) in &self.entity_store.pheromones {
-            let intensity = self.entity_store.intensities.get_mut(&ph_id).unwrap();
-            let strength_to_spread = (intensity.strength as f64 * 0.50).ceil() as u32;
-            intensity.strength -= strength_to_spread;
+            let mut current_new_pheromones: Vec<(PositionComponent, PheromoneType)> = vec![];
+            let pos = self.entity_store.get_position(ph_id).unwrap();
+            let ph_type = self.entity_store.pheromone_types.get(&ph_id).unwrap();
+            for i in 0..4 {
+                let angle = PI / 2.0 * i as f64;
+                let new_pos = PositionComponent {
+                    x: pos.x + angle.cos(),
+                    y: pos.y + angle.sin(),
+                };
 
-            if intensity.strength == 0 {
-                evaporated_pheromones.push(ph_id.clone());
-            }
-
-            if strength_to_spread >= 8 {
-                let pos = self.entity_store.get_position(ph_id).unwrap();
-                for i in 0..8 {
-                    let angle = PI / 4.0 * i as f64;
-                    new_pheromones.push((
-                        PositionComponent {
-                            x: pos.x + angle.cos(),
-                            y: pos.y + angle.sin(),
-                        },
+                if self.pos_is_in_bounds(&new_pos)
+                    && !self.pos_is_occupied_by_older_generation(&new_pos, &ph_type)
+                {
+                    current_new_pheromones.push((
+                        new_pos,
                         self.entity_store
                             .pheromone_types
                             .get(&ph_id)
                             .unwrap()
                             .clone(),
-                        IntensityComponent {
-                            strength: strength_to_spread / 8,
-                        },
                     ));
+                }
+            }
+
+            let intensity = self.entity_store.intensities.get_mut(&ph_id).unwrap();
+            if intensity.strength == 0 {
+                evaporated_pheromones.push(ph_id.clone());
+            }
+
+            if !current_new_pheromones.is_empty() {
+                let strength_to_spread = (intensity.strength as f64 * 0.50).ceil() as u32;
+                let strength_per_new_pheromone =
+                    strength_to_spread / current_new_pheromones.len() as u32;
+
+                if strength_per_new_pheromone > 0 {
+                    for (pos, ph_type) in current_new_pheromones {
+                        new_pheromones.push((
+                            pos,
+                            ph_type,
+                            IntensityComponent {
+                                strength: strength_per_new_pheromone,
+                            },
+                        ));
+                        intensity.strength -= strength_per_new_pheromone;
+                    }
                 }
             }
         }
@@ -348,13 +386,16 @@ impl Game {
         }
 
         for (pos, ph_type, intensity) in new_pheromones {
-            self.increase_pheromone_strength_at(&pos, &ph_type, &intensity);
+            if intensity.strength > 0 {
+                self.increase_pheromone_strength_at(&pos, &ph_type, &intensity);
+            }
         }
     }
 
     pub fn tick(&mut self) {
         self.ants();
         self.pheromones();
+        self.entity_store.pheromone_generation += 1;
     }
 }
 

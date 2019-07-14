@@ -1,4 +1,5 @@
 use crate::entities::*;
+use crate::entity_store::PheromoneGenerationNr;
 use crate::utils::*;
 use std::cmp::Ordering;
 
@@ -90,6 +91,11 @@ pub struct EdibleComponent {}
 #[derive(PartialEq, Debug)]
 pub struct PheromoneTypeComponent {
     pub ph_type: PheromoneType,
+}
+
+#[derive(PartialEq, Debug, Default)]
+pub struct PheromoneGenerationComponent {
+    pub generation: PheromoneGenerationNr,
 }
 
 #[derive(PartialEq, Debug, Default)]
