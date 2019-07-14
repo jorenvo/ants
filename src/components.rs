@@ -109,7 +109,7 @@ pub struct ReleasingPheromoneComponent {
     pub ph_type: PheromoneType,
 }
 
-#[derive(PartialEq, Debug, Default)]
+#[derive(PartialEq, Clone, Debug, Default)]
 pub struct DirectionComponent {
     pub x: f64,
     pub y: f64,

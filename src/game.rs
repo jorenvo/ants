@@ -94,6 +94,7 @@ impl Game {
         pos: &PositionComponent,
         direction: &DirectionComponent,
     ) -> DirectionComponent {
+        let mut direction = direction.clone();
         if self
             .entity_store
             .get_pheromone_with_type_at(&pos, &PheromoneType::Food)
@@ -116,12 +117,18 @@ impl Game {
             }
         }
 
-        let mut dir = self.calc_random_direction(direction);
+        let mut dir = self.calc_random_direction(&direction);
+        let mut tries = 1;
         while !self.pos_is_in_bounds(&PositionComponent {
             x: pos.x + dir.x,
             y: pos.y + dir.y,
         }) {
-            dir = self.calc_random_direction(direction);
+            if tries == 2 {
+                direction.x = -direction.x;
+                direction.y = -direction.y;
+            }
+            dir = self.calc_random_direction(&direction);
+            tries += 1;
         }
 
         dir
