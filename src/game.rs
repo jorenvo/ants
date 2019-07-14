@@ -135,7 +135,7 @@ impl Game {
 
         if let Some(entities_at_new_pos) = entities_at_new_pos {
             for id in entities_at_new_pos {
-                const TICKS: u32 = 2;
+                const TICKS: u32 = 1;
                 match self.entity_store.entity_types.get(id) {
                     Some(EntityType::Pheromone) => {
                         new_sensed_pheromones.push((*ant_id, *id));
@@ -195,12 +195,12 @@ impl Game {
         };
         let mut pheromones_to_delete = vec![];
 
-        if let Some(entities) = self.entity_store.get_entities_at(pos) {
-            let pheromones: Vec<&EntityIndex> = entities
+        if let Some(pheromones) = self
+            .entity_store
+            .get_entities_with_type_at(&pos, &EntityType::Pheromone)
+        {
+            let pheromones: Vec<&EntityIndex> = pheromones
                 .iter()
-                .filter(|id| {
-                    self.entity_store.entity_types.get(id).unwrap() == &EntityType::Pheromone
-                })
                 .filter(|id| self.entity_store.pheromone_types.get(id).unwrap() == ph_type)
                 .collect();
 
@@ -254,7 +254,8 @@ impl Game {
             self.entity_store.releasing_pheromones.get_mut(ant_id)
         {
             releasing_pheromone_comp.ticks_left -= 1;
-            if releasing_pheromone_comp.ticks_left == 0 {
+
+            if releasing_pheromone_comp.ticks_left + 1 == 0 {
                 self.entity_store.releasing_pheromones.remove(ant_id);
             } else {
                 match releasing_pheromone_comp.ph_type {
