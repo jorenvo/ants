@@ -135,7 +135,7 @@ impl Game {
 
         if let Some(entities_at_new_pos) = entities_at_new_pos {
             for id in entities_at_new_pos {
-                const TICKS: u32 = 1;
+                const TICKS: u32 = 2;
                 match self.entity_store.entity_types.get(id) {
                     Some(EntityType::Pheromone) => {
                         new_sensed_pheromones.push((*ant_id, *id));
@@ -189,9 +189,15 @@ impl Game {
         pos: &PositionComponent,
         ph_type: &PheromoneType,
         extra_strength: u32,
-    ) -> IntensityComponent {
+    ) -> (IntensityComponent, PheromoneGenerationComponent) {
         let mut intensity = IntensityComponent {
             strength: extra_strength,
+        };
+
+        // When merging pheromones the oldest generation should be
+        // kept. This allows ants to reinforce existing pheromones.
+        let mut generation = PheromoneGenerationComponent {
+            generation: self.entity_store.pheromone_generation,
         };
         let mut pheromones_to_delete = vec![];
 
@@ -211,6 +217,18 @@ impl Game {
                     .sum();
                 intensity.strength += merged_strength;
 
+                generation.generation = pheromones
+                    .iter()
+                    .map(|p| {
+                        self.entity_store
+                            .pheromone_generations
+                            .get(p)
+                            .unwrap()
+                            .generation
+                    })
+                    .min()
+                    .unwrap_or(self.entity_store.pheromone_generation);
+
                 pheromones_to_delete = pheromones.iter().map(|p| **p).collect();
             }
         }
@@ -223,7 +241,7 @@ impl Game {
             self.entity_store.pheromones.remove(&ph);
         }
 
-        intensity
+        (intensity, generation)
     }
 
     fn increase_pheromone_strength_at(
@@ -232,17 +250,15 @@ impl Game {
         ph_type: &PheromoneType,
         intensity: &IntensityComponent,
     ) -> EntityIndex {
-        let intensity = self.merge_and_clear_pheromones(&pos, ph_type, intensity.strength);
+        let (intensity, generation) =
+            self.merge_and_clear_pheromones(&pos, ph_type, intensity.strength);
         let ph_id = self.entity_store.create_entity(&EntityType::Pheromone);
         self.entity_store.update_position(&ph_id, &pos);
         self.entity_store.intensities.insert(ph_id, intensity);
         self.entity_store.pheromone_types.insert(ph_id, *ph_type);
-        self.entity_store.pheromone_generations.insert(
-            ph_id,
-            PheromoneGenerationComponent {
-                generation: self.entity_store.pheromone_generation,
-            },
-        );
+        self.entity_store
+            .pheromone_generations
+            .insert(ph_id, generation);
 
         ph_id
     }
@@ -255,7 +271,7 @@ impl Game {
         {
             releasing_pheromone_comp.ticks_left -= 1;
 
-            if releasing_pheromone_comp.ticks_left + 1 == 0 {
+            if releasing_pheromone_comp.ticks_left == 0 {
                 self.entity_store.releasing_pheromones.remove(ant_id);
             } else {
                 match releasing_pheromone_comp.ph_type {
@@ -314,11 +330,12 @@ impl Game {
     fn pos_is_occupied_by_older_generation(
         &self,
         pos: &PositionComponent,
+        generation: &PheromoneGenerationComponent,
         ph_type: &PheromoneType,
     ) -> bool {
         if let Some(ph_id) = self.entity_store.get_pheromone_with_type_at(&pos, &ph_type) {
-            let generation = self.entity_store.pheromone_generations.get(&ph_id).unwrap();
-            generation.generation <= self.entity_store.pheromone_generation
+            let generation_at_pos = self.entity_store.pheromone_generations.get(&ph_id).unwrap();
+            generation_at_pos.generation <= generation.generation
         } else {
             false
         }
@@ -339,9 +356,10 @@ impl Game {
                     x: pos.x + angle.cos(),
                     y: pos.y + angle.sin(),
                 };
+                let generation = self.entity_store.pheromone_generations.get(&ph_id).unwrap();
 
                 if self.pos_is_in_bounds(&new_pos)
-                    && !self.pos_is_occupied_by_older_generation(&new_pos, &ph_type)
+                    && !self.pos_is_occupied_by_older_generation(&new_pos, &generation, &ph_type)
                 {
                     current_new_pheromones.push((
                         new_pos,
@@ -360,10 +378,11 @@ impl Game {
             }
 
             if !current_new_pheromones.is_empty() {
-                let strength_to_spread = (intensity.strength as f64 * 0.50).ceil() as u32;
+                let strength_to_spread = (intensity.strength as f64 * 0.20).ceil() as u32;
                 let strength_per_new_pheromone =
                     strength_to_spread / current_new_pheromones.len() as u32;
 
+                intensity.strength -= (intensity.strength as f64 * 0.25).ceil() as u32;;
                 if strength_per_new_pheromone > 0 {
                     for (pos, ph_type) in current_new_pheromones {
                         new_pheromones.push((
@@ -373,7 +392,6 @@ impl Game {
                                 strength: strength_per_new_pheromone,
                             },
                         ));
-                        intensity.strength -= strength_per_new_pheromone;
                     }
                 }
             }
@@ -395,8 +413,8 @@ impl Game {
     }
 
     pub fn tick(&mut self) {
-        self.ants();
         self.pheromones();
+        self.ants();
         self.entity_store.pheromone_generation += 1;
     }
 }
@@ -421,8 +439,10 @@ impl fmt::Display for Game {
 
         let integer_width = self.width.round() as u64;
         let integer_height = self.height.round() as u64;
-        let separator =
-            "|".to_owned() + &(0..integer_width).map(|_| "-------|").collect::<String>();
+        let separator = "|".to_owned()
+            + &(0..integer_width)
+                .map(|_| "-----------|")
+                .collect::<String>();
 
         writeln!(f, "{}", separator)?;
         for row in 0..integer_height {
@@ -431,9 +451,9 @@ impl fmt::Display for Game {
             let mut row_3 = String::new();
             for col in 0..integer_width {
                 let mut cell_color = "white";
-                let mut cell_value_row_1: String = "       ".to_string();
-                let mut cell_value_row_2: String = "       ".to_string();
-                let mut cell_value_row_3: String = "       ".to_string();
+                let mut cell_value_row_1: String = "           ".to_string();
+                let mut cell_value_row_2: String = "           ".to_string();
+                let mut cell_value_row_3: String = "           ".to_string();
                 let pos = PositionComponent {
                     x: col as f64,
                     y: row as f64,
@@ -452,25 +472,39 @@ impl fmt::Display for Game {
                                 }
                             }
                             Some(EntityType::Sugar) => {
-                                cell_value_row_1 = "■■■■■■■".to_string();
+                                cell_value_row_1 =
+                                    cell_value_row_1.chars().next().unwrap_or(' ').to_string()
+                                        + &"■■■■■■■■■■".to_string();
                                 cell_color = "green";
                             }
                             Some(EntityType::Base) => {
-                                cell_value_row_1 = "■■■■■■■".to_string();
+                                cell_value_row_1 =
+                                    cell_value_row_1.chars().next().unwrap_or(' ').to_string()
+                                        + &"■■■■■■■■■■".to_string();
                                 cell_color = "blue";
                             }
                             Some(EntityType::Pheromone) => {
                                 match self.entity_store.pheromone_types.get(&id).unwrap() {
                                     PheromoneType::Food => {
                                         cell_value_row_2 = format!(
-                                            "{:7}",
-                                            self.entity_store.intensities.get(id).unwrap().strength
+                                            "{:7}|{:3}",
+                                            self.entity_store.intensities.get(id).unwrap().strength,
+                                            self.entity_store
+                                                .pheromone_generations
+                                                .get(id)
+                                                .unwrap()
+                                                .generation,
                                         );
                                     }
                                     PheromoneType::Base => {
                                         cell_value_row_3 = format!(
-                                            "{:7}",
-                                            self.entity_store.intensities.get(id).unwrap().strength
+                                            "{:7}|{:3}",
+                                            self.entity_store.intensities.get(id).unwrap().strength,
+                                            self.entity_store
+                                                .pheromone_generations
+                                                .get(id)
+                                                .unwrap()
+                                                .generation,
                                         );
                                     }
                                 }
