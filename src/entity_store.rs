@@ -17,6 +17,7 @@ pub struct EntityStore {
     pub pheromones: BTreeMap<EntityIndex, PheromoneEntity>,
     pub sugars: BTreeMap<EntityIndex, SugarEntity>,
     pub bases: BTreeMap<EntityIndex, BaseEntity>,
+    pub walls: BTreeMap<EntityIndex, WallEntity>,
 
     // Components
     positions: BTreeMap<EntityIndex, PositionComponent>,
@@ -29,6 +30,7 @@ pub struct EntityStore {
     pub pheromone_types: BTreeMap<EntityIndex, PheromoneType>,
     pub carrying_food: BTreeMap<EntityIndex, CarryingFoodComponent>,
     pub builders: BTreeMap<EntityIndex, BuilderComponent>,
+    pub impenetrables: BTreeMap<EntityIndex, ImpenetrableComponent>,
 }
 
 impl EntityStore {
@@ -70,6 +72,16 @@ impl EntityStore {
             }
         } else {
             None
+        }
+    }
+
+    pub fn pos_is_impenetrable(&self, pos: &PositionComponent) -> bool {
+        if let Some(entities) = self.get_entities_at(pos) {
+            entities
+                .iter()
+                .any(|id| self.impenetrables.get(&id).is_some())
+        } else {
+            false
         }
     }
 
@@ -175,6 +187,12 @@ impl EntityStore {
             EntityType::Base => {
                 self.update_position(&index, &PositionComponent::default());
                 self.bases.insert(index, BaseEntity {});
+            }
+            EntityType::Wall => {
+                self.update_position(&index, &PositionComponent::default());
+                self.impenetrables
+                    .insert(index, ImpenetrableComponent::default());
+                self.walls.insert(index, WallEntity {});
             }
         }
         self.entity_types.insert(index, entity_type.clone());

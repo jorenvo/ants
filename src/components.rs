@@ -126,3 +126,6 @@ pub struct CarryingFoodComponent {}
 
 #[derive(PartialEq, Debug, Default)]
 pub struct BuilderComponent {}
+
+#[derive(PartialEq, Debug, Default)]
+pub struct ImpenetrableComponent {}

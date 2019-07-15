@@ -29,6 +29,14 @@ impl Game {
         pos.x >= 0.0 && pos.y >= 0.0 && pos.x < self.width && pos.y < self.height
     }
 
+    fn pos_can_be_occupied(&self, pos: &PositionComponent) -> bool {
+        if !self.pos_is_in_bounds(pos) {
+            false
+        } else {
+            !self.entity_store.pos_is_impenetrable(pos)
+        }
+    }
+
     fn calc_random_direction(&self, direction: &DirectionComponent) -> DirectionComponent {
         let std_dev = 1.0 / 3.0; // 99.7% is within 3x std dev
         let normal = Normal::new(0.0, std_dev).unwrap();
@@ -62,7 +70,7 @@ impl Game {
                 x: pos.x + d.0 as f64,
                 y: pos.y + d.1 as f64,
             })
-            .filter(|p| self.pos_is_in_bounds(&p));
+            .filter(|p| self.pos_can_be_occupied(&p));
 
         let mut strength_to_dir = vec![];
         for new_pos in positions {
@@ -119,7 +127,7 @@ impl Game {
 
         let mut dir = self.calc_random_direction(&direction);
         let mut tries = 1;
-        while !self.pos_is_in_bounds(&PositionComponent {
+        while !self.pos_can_be_occupied(&PositionComponent {
             x: pos.x + dir.x,
             y: pos.y + dir.y,
         }) {
@@ -370,7 +378,9 @@ impl Game {
                 };
                 let generation = self.entity_store.pheromone_generations.get(&ph_id).unwrap();
 
-                if !self.pos_is_occupied_by_older_generation(&new_pos, &generation, &ph_type) {
+                if !self.pos_is_occupied_by_older_generation(&new_pos, &generation, &ph_type)
+                    && !self.entity_store.pos_is_impenetrable(&new_pos)
+                {
                     current_new_pheromones.push((
                         new_pos,
                         self.entity_store
@@ -395,7 +405,7 @@ impl Game {
                 intensity.strength -= (intensity.strength as f64 * 0.20).ceil() as u32;;
                 if strength_per_new_pheromone > 0 {
                     for (pos, ph_type) in current_new_pheromones {
-                        if self.pos_is_in_bounds(&pos) {
+                        if self.pos_can_be_occupied(&pos) {
                             new_pheromones.push((
                                 pos,
                                 ph_type,
@@ -521,7 +531,13 @@ impl fmt::Display for Game {
                                     }
                                 }
                             }
-                            _ => {}
+                            Some(EntityType::Wall) => {
+                                cell_value_row_1 =
+                                    cell_value_row_1.chars().next().unwrap_or(' ').to_string()
+                                        + &"xxxxxxxxxx".to_string();
+                                cell_color = "red";
+                            }
+                            None => {}
                         }
                     }
                 }
