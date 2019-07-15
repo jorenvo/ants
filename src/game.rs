@@ -143,51 +143,24 @@ impl Game {
     }
 
     fn handle_new_ant_pos(&mut self, ant_id: &EntityIndex, new_pos: &PositionComponent) {
-        let entities_at_new_pos = self.entity_store.get_entities_at(&new_pos);
-        let mut new_releasing_ph_components: Vec<(EntityIndex, ReleasingPheromoneComponent)> =
-            vec![];
+        let carrying_food = self.entity_store.carrying_food.get(&ant_id).is_some();
+        let is_base = self
+            .entity_store
+            .get_entities_with_type_at(&new_pos, &EntityType::Base)
+            .is_some();
+        let is_food = self
+            .entity_store
+            .get_entities_with_type_at(&new_pos, &EntityType::Sugar)
+            .is_some();
 
-        if let Some(entities_at_new_pos) = entities_at_new_pos {
-            for id in entities_at_new_pos {
-                const TICKS: u32 = 2;
-                match self.entity_store.entity_types.get(id) {
-                    Some(EntityType::Base) => {
-                        // println!("ant {} and base {} at position {:?}", ant_id, id, new_pos);
-                        new_releasing_ph_components.push((
-                            *ant_id,
-                            ReleasingPheromoneComponent {
-                                ticks_left: TICKS,
-                                ph_type: PheromoneType::Base,
-                            },
-                        ));
-                    }
-                    Some(EntityType::Sugar) => {
-                        // println!("ant {} and sugar {} at position {:?}", ant_id, id, new_pos);
-                        new_releasing_ph_components.push((
-                            *ant_id,
-                            ReleasingPheromoneComponent {
-                                ticks_left: TICKS,
-                                ph_type: PheromoneType::Food,
-                            },
-                        ));
-                    }
-                    _ => {}
-                }
+        if carrying_food {
+            if is_base && self.entity_store.carrying_food.remove(ant_id).is_some() {
+                println!("ant {} delivered food!", ant_id);
             }
-        }
-
-        for (id, comp) in new_releasing_ph_components {
-            if comp.ph_type == PheromoneType::Food {
-                self.entity_store
-                    .carrying_food
-                    .insert(id, CarryingFoodComponent {});
-            } else if comp.ph_type == PheromoneType::Base {
-                if self.entity_store.carrying_food.remove(&id).is_some() {
-                    println!("ant {} delivered food!", id);
-                }
-            }
-
-            self.entity_store.releasing_pheromones.insert(id, comp);
+        } else if is_food {
+            self.entity_store
+                .carrying_food
+                .insert(*ant_id, CarryingFoodComponent {});
         }
     }
 
