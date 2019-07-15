@@ -146,19 +146,11 @@ impl Game {
         let entities_at_new_pos = self.entity_store.get_entities_at(&new_pos);
         let mut new_releasing_ph_components: Vec<(EntityIndex, ReleasingPheromoneComponent)> =
             vec![];
-        let mut new_sensed_pheromones: Vec<(EntityIndex, EntityIndex)> = vec![];
 
         if let Some(entities_at_new_pos) = entities_at_new_pos {
             for id in entities_at_new_pos {
                 const TICKS: u32 = 2;
                 match self.entity_store.entity_types.get(id) {
-                    Some(EntityType::Pheromone) => {
-                        new_sensed_pheromones.push((*ant_id, *id));
-                        // println!(
-                        //     "ant {} and pheromone {} at position {:?}",
-                        //     ant_id, id, new_pos
-                        // );
-                    }
                     Some(EntityType::Base) => {
                         // println!("ant {} and base {} at position {:?}", ant_id, id, new_pos);
                         new_releasing_ph_components.push((
