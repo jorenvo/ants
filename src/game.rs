@@ -12,7 +12,6 @@ pub struct Game {
     width: f64,
     height: f64,
     pub entity_store: EntityStore,
-    pub rng: rand::rngs::StdRng,
 }
 
 impl Game {
@@ -21,7 +20,6 @@ impl Game {
             width: width,
             height: height,
             entity_store: entity_store,
-            rng: SeedableRng::from_seed([150; 32]),
         }
     }
 
@@ -38,9 +36,52 @@ impl Game {
     }
 
     fn calc_random_direction(&self, direction: &DirectionComponent) -> DirectionComponent {
+        static mut CALL_COUNT: u8 = 0;
+        unsafe {
+            CALL_COUNT = CALL_COUNT.wrapping_add(1);
+        }
+
         let std_dev = 1.0 / 3.0; // 99.7% is within 3x std dev
         let normal = Normal::new(0.0, std_dev).unwrap();
-        let mut r = normal.sample(&mut rand::thread_rng());
+
+        let seed = unsafe {
+            [
+                CALL_COUNT,
+                (direction.x as u64 % 256) as u8,
+                (direction.y as u64 % 256) as u8,
+                (self.entity_store.new_index % 256) as u8,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+            ]
+        };
+        let mut rng: rand::rngs::StdRng = SeedableRng::from_seed(seed);
+        let mut r = normal.sample(&mut rng);
 
         r *= PI; // [-pi, pi], centered around pi
         r += direction.y.atan2(direction.x);

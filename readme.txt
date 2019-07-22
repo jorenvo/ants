@@ -1,7 +1,6 @@
 Todo
 ----
 - Check all .clone() calls and derive Copy where it makes sense, also get rid of &
-- Use seedable rng
 
 Pre-commit hook
 ---------------
