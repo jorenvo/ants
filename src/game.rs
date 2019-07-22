@@ -51,11 +51,11 @@ impl Game {
         }
     }
 
-    fn dir_to_strongest_adjecent_pheromone(
+    fn dirs_to_strongest_adjecent_pheromones(
         &self,
         pos: &PositionComponent,
         ph_type: &PheromoneType,
-    ) -> Option<DirectionComponent> {
+    ) -> Option<Vec<DirectionComponent>> {
         let mut directions = vec![(1, 0), (-1, 0), (0, 1), (0, -1)];
         let diagonals = [1, -1];
         for i in diagonals.iter() {
@@ -89,11 +89,52 @@ impl Game {
             }
         }
 
-        if strength_to_dir.len() > 1 {
-            Some(strength_to_dir.into_iter().max_by_key(|e| e.0).unwrap().1)
+        if strength_to_dir.len() >= 1 {
+            // desc sort
+            strength_to_dir.sort_unstable_by(|a, b| b.0.partial_cmp(&a.0).unwrap());
+            Some(strength_to_dir.into_iter().map(|a| a.1).collect())
         } else {
             None
         }
+    }
+
+    fn dir_to_strongest_adjecent_pheromone(
+        &self,
+        ant_id: &EntityIndex,
+        pos: &PositionComponent,
+        direction: &DirectionComponent,
+        ph_type: &PheromoneType,
+    ) -> Option<DirectionComponent> {
+        if let Some(dirs) = self.dirs_to_strongest_adjecent_pheromones(pos, ph_type) {
+            for dir in dirs {
+                let new_angle = dir.y.atan2(dir.x).abs();
+                let current_angle = direction.y.atan2(direction.x).abs();
+                let angle_diff = (new_angle - current_angle).abs();
+                println!(
+                    "({}, {}) (angle: {}), ({}, {}) (angle: {}) = {}",
+                    direction.x, direction.y, current_angle, dir.x, dir.y, new_angle, angle_diff
+                );
+
+                // only allow 90° (PI / 2) turns or less
+                if angle_diff > PI / 1.8 {
+                    continue;
+                }
+
+                let new_pos = PositionComponent {
+                    x: pos.x + dir.x,
+                    y: pos.y + dir.y,
+                };
+                if !self.entity_store.in_short_memory(ant_id, &new_pos) {
+                    println!(
+                        "going to pheromone at {:?} at angle {} ({:?} -> {:?})",
+                        new_pos, angle_diff, direction, dir
+                    );
+                    return Some(dir);
+                }
+            }
+        }
+
+        None
     }
 
     fn get_new_ant_direction(
@@ -103,39 +144,47 @@ impl Game {
         direction: &DirectionComponent,
     ) -> DirectionComponent {
         let mut direction = direction.clone();
-        if self
-            .entity_store
-            .get_pheromone_with_type_at(&pos, &PheromoneType::Food)
-            .is_some()
-            && self.entity_store.carrying_food.get(&ant_id).is_none()
-        {
-            if let Some(dir) = self.dir_to_strongest_adjecent_pheromone(pos, &PheromoneType::Food) {
+
+        if self.entity_store.carrying_food.get(&ant_id).is_none() {
+            if let Some(dir) = self.dir_to_strongest_adjecent_pheromone(
+                ant_id,
+                pos,
+                &direction,
+                &PheromoneType::Food,
+            ) {
                 return dir;
             }
         }
 
-        if self
-            .entity_store
-            .get_pheromone_with_type_at(&pos, &PheromoneType::Base)
-            .is_some()
-            && self.entity_store.carrying_food.get(&ant_id).is_some()
-        {
-            if let Some(dir) = self.dir_to_strongest_adjecent_pheromone(pos, &PheromoneType::Base) {
+        if self.entity_store.carrying_food.get(&ant_id).is_some() {
+            if let Some(dir) = self.dir_to_strongest_adjecent_pheromone(
+                ant_id,
+                pos,
+                &direction,
+                &PheromoneType::Base,
+            ) {
                 return dir;
             }
         }
 
         let mut dir = self.calc_random_direction(&direction);
-        let mut tries = 1;
-        while !self.pos_can_be_occupied(&PositionComponent {
+        let mut new_pos = PositionComponent {
             x: pos.x + dir.x,
             y: pos.y + dir.y,
-        }) {
-            if tries == 2 {
+        };
+        let mut tries = 1;
+        while !self.pos_can_be_occupied(&new_pos)
+            || (self.entity_store.in_short_memory(ant_id, &new_pos) && tries < 8)
+        {
+            if tries == 8 {
                 direction.x = -direction.x;
                 direction.y = -direction.y;
             }
             dir = self.calc_random_direction(&direction);
+            new_pos = PositionComponent {
+                x: pos.x + dir.x,
+                y: pos.y + dir.y,
+            };
             tries += 1;
         }
 
@@ -154,14 +203,37 @@ impl Game {
             .is_some();
 
         if carrying_food {
-            if is_base && self.entity_store.carrying_food.remove(ant_id).is_some() {
-                println!("ant {} delivered food!", ant_id);
-            }
-        } else if is_food {
+            self.entity_store.releasing_pheromones.insert(
+                *ant_id,
+                ReleasingPheromoneComponent {
+                    ph_type: PheromoneType::Base,
+                    ticks_left: 999, // todo
+                },
+            );
+        } else {
+            self.entity_store.releasing_pheromones.insert(
+                *ant_id,
+                ReleasingPheromoneComponent {
+                    ph_type: PheromoneType::Food,
+                    ticks_left: 999, // todo
+                },
+            );
+        }
+
+        if carrying_food && is_base {
+            println!("ant {} delivered food!", ant_id);
+            self.entity_store.carrying_food.remove(ant_id);
+            self.entity_store.clear_memory(ant_id);
+        }
+
+        if !carrying_food && is_food {
             self.entity_store
                 .carrying_food
                 .insert(*ant_id, CarryingFoodComponent {});
+            self.entity_store.clear_memory(ant_id);
         }
+
+        self.entity_store.add_to_short_memory(ant_id, new_pos);
     }
 
     fn merge_and_clear_pheromones(
@@ -244,7 +316,7 @@ impl Game {
     }
 
     fn release_pheromones(&mut self, ant_id: &EntityIndex) {
-        const NEW_PHEROMONE_STRENGTH: u32 = 4096;
+        const NEW_PHEROMONE_STRENGTH: u32 = 1;
 
         if let Some(releasing_pheromone_comp) =
             self.entity_store.releasing_pheromones.get_mut(ant_id)
@@ -257,22 +329,37 @@ impl Game {
                 match releasing_pheromone_comp.ph_type {
                     PheromoneType::Food => {
                         let ant_pos = self.entity_store.get_position(ant_id).unwrap().clone();
+                        let strength = if self
+                            .entity_store
+                            .get_entities_with_type_at(&ant_pos, &EntityType::Sugar)
+                            .is_some()
+                        {
+                            NEW_PHEROMONE_STRENGTH * 10
+                        } else {
+                            NEW_PHEROMONE_STRENGTH
+                        };
+
                         self.increase_pheromone_strength_at(
                             &ant_pos,
                             &PheromoneType::Food,
-                            &IntensityComponent {
-                                strength: NEW_PHEROMONE_STRENGTH,
-                            },
+                            &IntensityComponent { strength: strength },
                         );
                     }
                     PheromoneType::Base => {
                         let ant_pos = self.entity_store.get_position(ant_id).unwrap().clone();
+                        let strength = if self
+                            .entity_store
+                            .get_entities_with_type_at(&ant_pos, &EntityType::Base)
+                            .is_some()
+                        {
+                            NEW_PHEROMONE_STRENGTH * 10
+                        } else {
+                            NEW_PHEROMONE_STRENGTH
+                        };
                         self.increase_pheromone_strength_at(
                             &ant_pos,
                             &PheromoneType::Base,
-                            &IntensityComponent {
-                                strength: NEW_PHEROMONE_STRENGTH,
-                            },
+                            &IntensityComponent { strength: strength },
                         );
                     }
                 }
@@ -400,7 +487,7 @@ impl Game {
     }
 
     pub fn tick(&mut self) {
-        self.pheromones();
+        // self.pheromones();
         self.ants();
         self.entity_store.pheromone_generation += 1;
     }
@@ -454,6 +541,7 @@ impl fmt::Display for Game {
                                     + &cell_value_row_1
                                         [cell_value_row_1.char_indices().nth(1).unwrap().0..];
 
+                                cell_color = "red";
                                 if self.entity_store.carrying_food.get(&id).is_some() {
                                     cell_color = "yellow";
                                 }

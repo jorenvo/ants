@@ -2,6 +2,7 @@ use crate::entities::*;
 use crate::entity_store::PheromoneGenerationNr;
 use crate::utils::*;
 use std::cmp::Ordering;
+use std::collections::{HashSet, VecDeque};
 
 #[derive(Clone, Debug)]
 pub struct PositionComponent {
@@ -41,7 +42,7 @@ impl Ord for PositionComponent {
     }
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, Hash)]
 pub struct CoarsePositionComponent {
     pub x: u64,
     pub y: u64,
@@ -129,3 +130,19 @@ pub struct BuilderComponent {}
 
 #[derive(PartialEq, Debug, Default)]
 pub struct ImpenetrableComponent {}
+
+pub struct ShortMemory {
+    pub pos: HashSet<CoarsePositionComponent>,
+    pub pos_queue: VecDeque<CoarsePositionComponent>,
+    pub size: usize,
+}
+
+impl Default for ShortMemory {
+    fn default() -> Self {
+        ShortMemory {
+            pos: HashSet::new(),
+            pos_queue: VecDeque::new(),
+            size: 16,
+        }
+    }
+}

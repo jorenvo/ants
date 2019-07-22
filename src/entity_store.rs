@@ -31,6 +31,7 @@ pub struct EntityStore {
     pub carrying_food: BTreeMap<EntityIndex, CarryingFoodComponent>,
     pub builders: BTreeMap<EntityIndex, BuilderComponent>,
     pub impenetrables: BTreeMap<EntityIndex, ImpenetrableComponent>,
+    pub memories: BTreeMap<EntityIndex, ShortMemory>,
 }
 
 impl EntityStore {
@@ -168,11 +169,38 @@ impl EntityStore {
         self.directions.remove(&id);
     }
 
+    pub fn add_to_short_memory(&mut self, ant_id: &EntityIndex, pos: &PositionComponent) {
+        let memory = self.memories.get_mut(ant_id).unwrap();
+        let coarse_pos = CoarsePositionComponent::from(pos);
+
+        if memory.pos_queue.len() >= memory.size {
+            let removed = memory.pos_queue.pop_front().unwrap();
+            memory.pos.remove(&removed);
+        }
+
+        memory.pos_queue.push_back(coarse_pos.clone());
+        memory.pos.insert(coarse_pos);
+    }
+
+    pub fn in_short_memory(&self, ant_id: &EntityIndex, pos: &PositionComponent) -> bool {
+        let memory = self.memories.get(ant_id).unwrap();
+        let coarse_pos = CoarsePositionComponent::from(pos);
+
+        memory.pos.get(&coarse_pos).is_some()
+    }
+
+    pub fn clear_memory(&mut self, ant_id: &EntityIndex) {
+        let memory = self.memories.get_mut(ant_id).unwrap();
+        memory.pos_queue.clear();
+        memory.pos.clear();
+    }
+
     pub fn create_entity(&mut self, entity_type: &EntityType) -> EntityIndex {
         let index = self.get_new_index();
         match entity_type {
             EntityType::Ant => {
                 self.update_position(&index, &PositionComponent::default());
+                self.memories.insert(index, ShortMemory::default());
                 self.ants.insert(index, AntEntity {});
             }
             EntityType::Pheromone => {
@@ -180,12 +208,12 @@ impl EntityStore {
                 self.pheromones.insert(index, PheromoneEntity {});
             }
             EntityType::Sugar => {
-                self.update_position(&index, &PositionComponent { x: 8.0, y: 8.0 });
+                self.update_position(&index, &PositionComponent { x: 4.5, y: 2.5 });
                 self.edibles.insert(index, EdibleComponent::default());
                 self.sugars.insert(index, SugarEntity {});
             }
             EntityType::Base => {
-                self.update_position(&index, &PositionComponent::default());
+                self.update_position(&index, &PositionComponent { x: 0.5, y: 2.5 });
                 self.bases.insert(index, BaseEntity {});
             }
             EntityType::Wall => {
