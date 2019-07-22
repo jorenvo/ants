@@ -4,8 +4,11 @@ use crate::entity_store::*;
 use colored::*;
 use rand::prelude::SeedableRng;
 use rand_distr::{Distribution, Normal};
+use std::cell::RefCell;
 use std::f64::consts::PI;
 use std::fmt;
+
+thread_local!(static RNG: RefCell<rand::rngs::StdRng> = RefCell::new(SeedableRng::from_seed([0; 32])));
 
 // TODO is this a System?
 pub struct Game {
@@ -36,52 +39,9 @@ impl Game {
     }
 
     fn calc_random_direction(&self, direction: &DirectionComponent) -> DirectionComponent {
-        static mut CALL_COUNT: u8 = 0;
-        unsafe {
-            CALL_COUNT = CALL_COUNT.wrapping_add(1);
-        }
-
         let std_dev = 1.0 / 3.0; // 99.7% is within 3x std dev
         let normal = Normal::new(0.0, std_dev).unwrap();
-
-        let seed = unsafe {
-            [
-                CALL_COUNT,
-                (direction.x as u64 % 256) as u8,
-                (direction.y as u64 % 256) as u8,
-                (self.entity_store.new_index % 256) as u8,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-            ]
-        };
-        let mut rng: rand::rngs::StdRng = SeedableRng::from_seed(seed);
-        let mut r = normal.sample(&mut rng);
+        let mut r = RNG.with(|rng| normal.sample(&mut *rng.borrow_mut()));
 
         r *= PI; // [-pi, pi], centered around pi
         r += direction.y.atan2(direction.x);
