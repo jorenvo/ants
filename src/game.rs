@@ -277,6 +277,14 @@ impl Game {
         self.entity_store.add_to_short_memory(ant_id, new_pos);
     }
 
+    fn remove_pheromone(&mut self, ph_id: EntityIndex) {
+        self.entity_store.remove_position(&ph_id);
+        self.entity_store.intensities.remove(&ph_id);
+        self.entity_store.pheromone_types.remove(&ph_id);
+        self.entity_store.pheromone_generations.remove(&ph_id);
+        self.entity_store.pheromones.remove(&ph_id);
+    }
+
     fn merge_and_clear_pheromones(
         &mut self,
         pos: &PositionComponent,
@@ -327,11 +335,7 @@ impl Game {
         }
 
         for ph in pheromones_to_delete {
-            self.entity_store.remove_position(&ph);
-            self.entity_store.intensities.remove(&ph);
-            self.entity_store.pheromone_types.remove(&ph);
-            self.entity_store.pheromone_generations.remove(&ph);
-            self.entity_store.pheromones.remove(&ph);
+            self.remove_pheromone(ph);
         }
 
         (intensity, generation)
@@ -357,7 +361,7 @@ impl Game {
     }
 
     fn release_pheromones(&mut self, ant_id: &EntityIndex) {
-        const NEW_PHEROMONE_STRENGTH: u32 = 1;
+        const NEW_PHEROMONE_STRENGTH: u32 = 16;
 
         if let Some(releasing_pheromone_comp) =
             self.entity_store.releasing_pheromones.get_mut(ant_id)
@@ -440,95 +444,24 @@ impl Game {
         }
     }
 
-    fn pos_is_occupied_by_older_generation(
-        &self,
-        pos: &PositionComponent,
-        generation: &PheromoneGenerationComponent,
-        ph_type: &PheromoneType,
-    ) -> bool {
-        if let Some(ph_id) = self.entity_store.get_pheromone_with_type_at(&pos, &ph_type) {
-            let generation_at_pos = self.entity_store.pheromone_generations.get(&ph_id).unwrap();
-            generation_at_pos.generation <= generation.generation
-        } else {
-            false
-        }
-    }
-
     fn pheromones(&mut self) {
-        let mut new_pheromones: Vec<(PositionComponent, PheromoneType, IntensityComponent)> =
-            vec![];
-        let mut evaporated_pheromones = vec![];
+        let mut to_remove = Vec::new();
 
-        for (ph_id, _) in &self.entity_store.pheromones {
-            let mut current_new_pheromones: Vec<(PositionComponent, PheromoneType)> = vec![];
-            let pos = self.entity_store.get_position(ph_id).unwrap();
-            let ph_type = self.entity_store.pheromone_types.get(&ph_id).unwrap();
-            for i in 0..4 {
-                let angle = PI / 2.0 * i as f64;
-                let new_pos = PositionComponent {
-                    x: pos.x + angle.cos(),
-                    y: pos.y + angle.sin(),
-                };
-                let generation = self.entity_store.pheromone_generations.get(&ph_id).unwrap();
+        for (id, intensity) in self.entity_store.intensities.iter_mut() {
+            intensity.strength -= 1;
 
-                if !self.pos_is_occupied_by_older_generation(&new_pos, &generation, &ph_type)
-                    && !self.entity_store.pos_is_impenetrable(&new_pos)
-                {
-                    current_new_pheromones.push((
-                        new_pos,
-                        self.entity_store
-                            .pheromone_types
-                            .get(&ph_id)
-                            .unwrap()
-                            .clone(),
-                    ));
-                }
-            }
-
-            let intensity = self.entity_store.intensities.get_mut(&ph_id).unwrap();
-            if intensity.strength < 8 {
-                evaporated_pheromones.push(ph_id.clone());
-            }
-
-            if !current_new_pheromones.is_empty() {
-                let strength_to_spread = (intensity.strength as f64 * 0.20).ceil() as u32;
-                let strength_per_new_pheromone =
-                    strength_to_spread / current_new_pheromones.len() as u32;
-
-                intensity.strength -= (intensity.strength as f64 * 0.20).ceil() as u32;;
-                if strength_per_new_pheromone > 0 {
-                    for (pos, ph_type) in current_new_pheromones {
-                        if self.pos_can_be_occupied(&pos) {
-                            new_pheromones.push((
-                                pos,
-                                ph_type,
-                                IntensityComponent {
-                                    strength: strength_per_new_pheromone,
-                                },
-                            ));
-                        }
-                    }
-                }
+            if intensity.strength == 0 {
+                to_remove.push(*id);
             }
         }
 
-        for ph_id in evaporated_pheromones {
-            self.entity_store.remove_position(&ph_id);
-            self.entity_store.intensities.remove(&ph_id);
-            self.entity_store.pheromone_types.remove(&ph_id);
-            self.entity_store.pheromone_generations.remove(&ph_id);
-            self.entity_store.pheromones.remove(&ph_id);
-        }
-
-        for (pos, ph_type, intensity) in new_pheromones {
-            if intensity.strength > 0 {
-                self.increase_pheromone_strength_at(&pos, &ph_type, &intensity);
-            }
+        for id in to_remove {
+            self.remove_pheromone(id);
         }
     }
 
     pub fn tick(&mut self) {
-        // self.pheromones();
+        self.pheromones();
         self.ants();
         self.entity_store.pheromone_generation += 1;
     }

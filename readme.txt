@@ -1,6 +1,7 @@
 Todo
 ----
 - Check all .clone() calls and derive Copy where it makes sense, also get rid of &
+- Remove pheromone_generation
 
 Pre-commit hook
 ---------------
