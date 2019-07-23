@@ -106,6 +106,7 @@ impl Game {
         pos: &PositionComponent,
         direction: &DirectionComponent,
         ph_type: &PheromoneType,
+        allow_sharp_turns: bool,
     ) -> Option<DirectionComponent> {
         if let Some(dirs) = self.dirs_to_strongest_adjecent_pheromones(pos, ph_type) {
             for dir in dirs {
@@ -114,7 +115,7 @@ impl Game {
                 let angle_diff = (new_angle - current_angle).abs();
 
                 // only allow 90° (PI / 2) turns or less
-                if angle_diff > PI / 1.8 {
+                if !allow_sharp_turns && angle_diff > PI / 1.8 {
                     continue;
                 }
 
@@ -138,11 +139,15 @@ impl Game {
         direction: &DirectionComponent,
     ) -> DirectionComponent {
         let mut direction = direction.clone();
-        let is_adventurous: f32 = RNG.with(|rng| (*rng.borrow_mut()).gen());
-        let is_adventurous: bool = is_adventurous > 0.95;
-        if is_adventurous {
-            println!("ant {} decides to be adventurous!", ant_id);
-        }
+        let is_adventurous = self.entity_store.adventurous.get(&ant_id).is_some();
+        let allow_sharp_turns = self
+            .entity_store
+            .get_entities_with_type_at(pos, &EntityType::Sugar)
+            .is_some()
+            || self
+                .entity_store
+                .get_entities_with_type_at(pos, &EntityType::Base)
+                .is_some();
 
         if !is_adventurous && self.entity_store.carrying_food.get(&ant_id).is_none() {
             if let Some(dir) = self.dir_to_strongest_adjecent_pheromone(
@@ -150,6 +155,7 @@ impl Game {
                 pos,
                 &direction,
                 &PheromoneType::Food,
+                allow_sharp_turns,
             ) {
                 return dir;
             }
@@ -161,6 +167,7 @@ impl Game {
                 pos,
                 &direction,
                 &PheromoneType::Base,
+                allow_sharp_turns,
             ) {
                 return dir;
             }
@@ -221,6 +228,7 @@ impl Game {
 
         if carrying_food && is_base {
             println!("ant {} delivered food!", ant_id);
+            self.entity_store.food_in_base += 1;
             self.entity_store.carrying_food.remove(ant_id);
             self.entity_store.clear_memory(ant_id);
         }
@@ -372,6 +380,8 @@ impl Game {
 
     fn ants(&mut self) {
         let mut new_positions: Vec<(EntityIndex, PositionComponent)> = vec![];
+        let mut new_adventurous: Vec<EntityIndex> = vec![];
+
         for (ant_id, _) in &self.entity_store.ants {
             let pos = self.entity_store.get_position(ant_id).unwrap();
 
@@ -393,6 +403,11 @@ impl Game {
 
                 new_positions.push((*ant_id, new_pos.clone()));
             }
+
+            // let is_adventurous: f32 = RNG.with(|rng| (*rng.borrow_mut()).gen());
+            // if is_adventurous > 0.95 {
+            //     new_adventurous.push(*ant_id);
+            // }
         }
 
         for (ant_id, pos) in new_positions {
@@ -400,13 +415,32 @@ impl Game {
             self.handle_new_ant_pos(&ant_id, &pos);
             self.release_pheromones(&ant_id);
         }
+
+        let mut depleted_adventurous: Vec<EntityIndex> = vec![];
+        for (ant_id, adventurous) in self.entity_store.adventurous.iter_mut() {
+            adventurous.ticks_left -= 1;
+
+            if adventurous.ticks_left == 0 {
+                depleted_adventurous.push(*ant_id);
+            }
+        }
+
+        for depleted in depleted_adventurous {
+            self.entity_store.adventurous.remove(&depleted);
+        }
+
+        for ant_id in new_adventurous {
+            self.entity_store
+                .adventurous
+                .insert(ant_id, AdventurousComponent { ticks_left: 4 });
+        }
     }
 
     fn pheromones(&mut self) {
         let mut to_remove = Vec::new();
 
         for (id, intensity) in self.entity_store.intensities.iter_mut() {
-            intensity.strength -= 1;
+            intensity.strength = intensity.strength.saturating_sub(1);
 
             if intensity.strength == 0 {
                 to_remove.push(*id);
@@ -416,6 +450,41 @@ impl Game {
         for id in to_remove {
             self.remove_pheromone(id);
         }
+    }
+
+    pub fn add_deneubourg_walls(&mut self) {
+        let mut index;
+        let mut y;
+        for i in 0..5 {
+            index = self.entity_store.create_entity(&EntityType::Wall);
+            y = if i == 0 || i == 4 { 1.5 } else { 0.5 };
+            self.entity_store
+                .update_position(&index, &PositionComponent { x: i as f64, y: y });
+
+            index = self.entity_store.create_entity(&EntityType::Wall);
+            y = if i == 0 || i == 4 { 3.5 } else { 4.5 };
+            self.entity_store
+                .update_position(&index, &PositionComponent { x: i as f64, y: y })
+        }
+
+        // corners
+        index = self.entity_store.create_entity(&EntityType::Wall);
+        self.entity_store
+            .update_position(&index, &PositionComponent { x: 0.5, y: 0.5 });
+        index = self.entity_store.create_entity(&EntityType::Wall);
+        self.entity_store
+            .update_position(&index, &PositionComponent { x: 4.5, y: 0.5 });
+        index = self.entity_store.create_entity(&EntityType::Wall);
+        self.entity_store
+            .update_position(&index, &PositionComponent { x: 0.5, y: 4.5 });
+        index = self.entity_store.create_entity(&EntityType::Wall);
+        self.entity_store
+            .update_position(&index, &PositionComponent { x: 4.5, y: 4.5 });
+
+        // middle
+        index = self.entity_store.create_entity(&EntityType::Wall);
+        self.entity_store
+            .update_position(&index, &PositionComponent { x: 2.5, y: 2.5 });
     }
 
     pub fn tick(&mut self) {
@@ -469,10 +538,9 @@ impl fmt::Display for Game {
                     for id in ids {
                         match self.entity_store.entity_types.get(id) {
                             Some(EntityType::Ant) => {
-                                cell_value_row_1 = "◆".to_string()
+                                cell_value_row_1 = format!("{}", id)
                                     + &cell_value_row_1
                                         [cell_value_row_1.char_indices().nth(1).unwrap().0..];
-
                                 cell_color = "red";
                                 if self.entity_store.carrying_food.get(&id).is_some() {
                                     cell_color = "yellow";
@@ -538,5 +606,47 @@ impl fmt::Display for Game {
         }
 
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod game_tests {
+    use super::*;
+
+    fn assert_greater_or_equal_then<T: fmt::Display + std::cmp::PartialOrd>(a: T, b: T) {
+        println!("{} >= {}", a, b);
+        assert!(a >= b);
+    }
+
+    fn init_game() -> Game {
+        let mut game = Game::init(EntityStore::default(), 5.0, 5.0);
+        game.entity_store.create_entity(&EntityType::Ant);
+        game.entity_store.create_entity(&EntityType::Base);
+        game.entity_store.create_entity(&EntityType::Sugar);
+
+        game
+    }
+
+    #[test]
+    fn test_open() {
+        let mut game = init_game();
+
+        for _ in 0..300 {
+            game.tick();
+        }
+
+        assert_greater_or_equal_then(game.entity_store.food_in_base, 35);
+    }
+
+    #[test]
+    fn test_optimal_deneubourg_walls_1_ant() {
+        let mut game = init_game();
+        game.add_deneubourg_walls();
+
+        for _ in 0..300 {
+            game.tick();
+        }
+
+        assert_greater_or_equal_then(game.entity_store.food_in_base, 35);
     }
 }

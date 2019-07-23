@@ -32,6 +32,10 @@ pub struct EntityStore {
     pub builders: BTreeMap<EntityIndex, BuilderComponent>,
     pub impenetrables: BTreeMap<EntityIndex, ImpenetrableComponent>,
     pub memories: BTreeMap<EntityIndex, ShortMemory>,
+    pub adventurous: BTreeMap<EntityIndex, AdventurousComponent>,
+
+    // Misc
+    pub food_in_base: u32,
 }
 
 impl EntityStore {

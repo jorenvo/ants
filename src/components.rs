@@ -146,3 +146,8 @@ impl Default for ShortMemory {
         }
     }
 }
+
+#[derive(PartialEq, Debug, Default)]
+pub struct AdventurousComponent {
+    pub ticks_left: u32,
+}
