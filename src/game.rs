@@ -56,7 +56,7 @@ impl Game {
     fn dirs_to_strongest_adjecent_pheromones(
         &self,
         pos: &PositionComponent,
-        ph_type: &PheromoneType,
+        ph_type: PheromoneType,
     ) -> Option<Vec<DirectionComponent>> {
         let mut directions = vec![(1, 0), (-1, 0), (0, 1), (0, -1)];
         let diagonals = [1, -1];
@@ -78,7 +78,7 @@ impl Game {
         for new_pos in positions {
             if let Some(ph_id) = self
                 .entity_store
-                .get_pheromone_with_type_at(&new_pos, &ph_type)
+                .get_pheromone_with_type_at(&new_pos, ph_type)
             {
                 let intensity = self.entity_store.intensities.get(&ph_id).unwrap();
                 strength_to_dir.push((
@@ -105,7 +105,7 @@ impl Game {
         ant_id: EntityIndex,
         pos: &PositionComponent,
         direction: &DirectionComponent,
-        ph_type: &PheromoneType,
+        ph_type: PheromoneType,
         allow_sharp_turns: bool,
     ) -> Option<DirectionComponent> {
         if let Some(dirs) = self.dirs_to_strongest_adjecent_pheromones(pos, ph_type) {
@@ -156,7 +156,7 @@ impl Game {
                 ant_id,
                 pos,
                 &direction,
-                &PheromoneType::Food,
+                PheromoneType::Food,
                 allow_sharp_turns,
             ) {
                 return dir;
@@ -168,7 +168,7 @@ impl Game {
                 ant_id,
                 pos,
                 &direction,
-                &PheromoneType::Base,
+                PheromoneType::Base,
                 allow_sharp_turns,
             ) {
                 return dir;
@@ -256,7 +256,7 @@ impl Game {
     fn merge_and_clear_pheromones(
         &mut self,
         pos: &PositionComponent,
-        ph_type: &PheromoneType,
+        ph_type: PheromoneType,
         extra_strength: u32,
     ) -> (IntensityComponent, PheromoneGenerationComponent) {
         let mut intensity = IntensityComponent {
@@ -276,7 +276,7 @@ impl Game {
         {
             let pheromones: Vec<&EntityIndex> = pheromones
                 .iter()
-                .filter(|id| self.entity_store.pheromone_types.get(id).unwrap() == ph_type)
+                .filter(|id| self.entity_store.pheromone_types.get(id).unwrap() == &ph_type)
                 .collect();
 
             if !pheromones.is_empty() {
@@ -312,7 +312,7 @@ impl Game {
     fn increase_pheromone_strength_at(
         &mut self,
         pos: &PositionComponent,
-        ph_type: &PheromoneType,
+        ph_type: PheromoneType,
         intensity: &IntensityComponent,
     ) -> EntityIndex {
         let (intensity, generation) =
@@ -320,7 +320,7 @@ impl Game {
         let ph_id = self.entity_store.create_entity(&EntityType::Pheromone);
         self.entity_store.update_position(ph_id, &pos);
         self.entity_store.intensities.insert(ph_id, intensity);
-        self.entity_store.pheromone_types.insert(ph_id, *ph_type);
+        self.entity_store.pheromone_types.insert(ph_id, ph_type);
         self.entity_store
             .pheromone_generations
             .insert(ph_id, generation);
@@ -354,7 +354,7 @@ impl Game {
 
                         self.increase_pheromone_strength_at(
                             &ant_pos,
-                            &PheromoneType::Food,
+                            PheromoneType::Food,
                             &IntensityComponent { strength },
                         );
                     }
@@ -371,7 +371,7 @@ impl Game {
                         };
                         self.increase_pheromone_strength_at(
                             &ant_pos,
-                            &PheromoneType::Base,
+                            PheromoneType::Base,
                             &IntensityComponent { strength },
                         );
                     }

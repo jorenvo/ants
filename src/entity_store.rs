@@ -93,12 +93,12 @@ impl EntityStore {
     pub fn get_pheromone_with_type_at(
         &self,
         search_pos: &PositionComponent,
-        pheromone_type: &PheromoneType,
+        pheromone_type: PheromoneType,
     ) -> Option<EntityIndex> {
         if let Some(ph_ids) = self.get_entities_with_type_at(&search_pos, &EntityType::Pheromone) {
             let ph_id: Vec<EntityIndex> = ph_ids
                 .into_iter()
-                .filter(|id| self.pheromone_types.get(id).unwrap() == pheromone_type)
+                .filter(|id| self.pheromone_types.get(id).unwrap() == &pheromone_type)
                 .collect();
 
             if ph_id.is_empty() {
