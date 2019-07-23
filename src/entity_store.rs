@@ -44,12 +44,12 @@ impl EntityStore {
         self.new_index - 1
     }
 
-    pub fn get_position(&self, id: &EntityIndex) -> Option<&PositionComponent> {
-        self.positions.get(id)
+    pub fn get_position(&self, id: EntityIndex) -> Option<&PositionComponent> {
+        self.positions.get(&id)
     }
 
-    pub fn get_direction(&self, id: &EntityIndex) -> Option<&DirectionComponent> {
-        self.directions.get(id)
+    pub fn get_direction(&self, id: EntityIndex) -> Option<&DirectionComponent> {
+        self.directions.get(&id)
     }
 
     pub fn get_entities_at(&self, search_pos: &PositionComponent) -> Option<&HashSet<EntityIndex>> {
@@ -113,11 +113,11 @@ impl EntityStore {
         }
     }
 
-    pub fn update_position(&mut self, id: &EntityIndex, new_pos: &PositionComponent) {
+    pub fn update_position(&mut self, id: EntityIndex, new_pos: &PositionComponent) {
         let old_pos = self.positions.get(&id);
         if let Some(old_pos) = old_pos {
             self.directions.insert(
-                *id,
+                id,
                 DirectionComponent {
                     x: new_pos.x - old_pos.x,
                     y: new_pos.y - old_pos.y,
@@ -137,7 +137,7 @@ impl EntityStore {
             }
         }
 
-        self.positions.insert(*id, new_pos.clone());
+        self.positions.insert(id, new_pos.clone());
 
         if self
             .positions_lookup
@@ -151,11 +151,11 @@ impl EntityStore {
         self.positions_lookup
             .get_mut(&CoarsePositionComponent::from(new_pos))
             .unwrap()
-            .insert(*id);
+            .insert(id);
     }
 
-    pub fn remove_position(&mut self, id: &EntityIndex) {
-        if let Some(pos) = self.get_position(&id) {
+    pub fn remove_position(&mut self, id: EntityIndex) {
+        if let Some(pos) = self.get_position(id) {
             let cloned_pos = pos.clone();
             let entities = self
                 .positions_lookup
@@ -173,8 +173,8 @@ impl EntityStore {
         self.directions.remove(&id);
     }
 
-    pub fn add_to_short_memory(&mut self, ant_id: &EntityIndex, pos: &PositionComponent) {
-        let memory = self.memories.get_mut(ant_id).unwrap();
+    pub fn add_to_short_memory(&mut self, ant_id: EntityIndex, pos: &PositionComponent) {
+        let memory = self.memories.get_mut(&ant_id).unwrap();
         let coarse_pos = CoarsePositionComponent::from(pos);
 
         if memory.pos_queue.len() >= memory.size {
@@ -186,15 +186,15 @@ impl EntityStore {
         memory.pos.insert(coarse_pos);
     }
 
-    pub fn in_short_memory(&self, ant_id: &EntityIndex, pos: &PositionComponent) -> bool {
-        let memory = self.memories.get(ant_id).unwrap();
+    pub fn in_short_memory(&self, ant_id: EntityIndex, pos: &PositionComponent) -> bool {
+        let memory = self.memories.get(&ant_id).unwrap();
         let coarse_pos = CoarsePositionComponent::from(pos);
 
         memory.pos.get(&coarse_pos).is_some()
     }
 
-    pub fn clear_memory(&mut self, ant_id: &EntityIndex) {
-        let memory = self.memories.get_mut(ant_id).unwrap();
+    pub fn clear_memory(&mut self, ant_id: EntityIndex) {
+        let memory = self.memories.get_mut(&ant_id).unwrap();
         memory.pos_queue.clear();
         memory.pos.clear();
     }
@@ -203,25 +203,25 @@ impl EntityStore {
         let index = self.get_new_index();
         match entity_type {
             EntityType::Ant => {
-                self.update_position(&index, &PositionComponent::default());
+                self.update_position(index, &PositionComponent::default());
                 self.memories.insert(index, ShortMemory::default());
                 self.ants.insert(index, AntEntity {});
             }
             EntityType::Pheromone => {
-                self.update_position(&index, &PositionComponent::default());
+                self.update_position(index, &PositionComponent::default());
                 self.pheromones.insert(index, PheromoneEntity {});
             }
             EntityType::Sugar => {
-                self.update_position(&index, &PositionComponent::default());
+                self.update_position(index, &PositionComponent::default());
                 self.edibles.insert(index, EdibleComponent::default());
                 self.sugars.insert(index, SugarEntity {});
             }
             EntityType::Base => {
-                self.update_position(&index, &PositionComponent::default());
+                self.update_position(index, &PositionComponent::default());
                 self.bases.insert(index, BaseEntity {});
             }
             EntityType::Wall => {
-                self.update_position(&index, &PositionComponent::default());
+                self.update_position(index, &PositionComponent::default());
                 self.impenetrables
                     .insert(index, ImpenetrableComponent::default());
                 self.walls.insert(index, WallEntity {});

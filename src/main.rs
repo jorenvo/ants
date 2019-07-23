@@ -3,8 +3,7 @@
     clippy::cast_sign_loss,
     clippy::cast_possible_wrap,
     clippy::cast_possible_truncation,
-    clippy::non_ascii_literal,
-    clippy::trivially_copy_pass_by_ref  // todo remove this
+    clippy::non_ascii_literal
 )]
 extern crate clap;
 extern crate rand;
@@ -45,7 +44,7 @@ fn main() {
     for i in 0..50 {
         index = game.entity_store.create_entity(&EntityType::Ant);
         game.entity_store.update_position(
-            &index,
+            index,
             &PositionComponent {
                 x: (0.5 + f64::from(i)) % WIDTH,
                 y: HEIGHT / 2.0,
@@ -55,7 +54,7 @@ fn main() {
 
     index = game.entity_store.create_entity(&EntityType::Base);
     game.entity_store.update_position(
-        &index,
+        index,
         &PositionComponent {
             x: 0.5,
             y: HEIGHT / 2.0,
@@ -64,7 +63,7 @@ fn main() {
 
     index = game.entity_store.create_entity(&EntityType::Sugar);
     game.entity_store.update_position(
-        &index,
+        index,
         &PositionComponent {
             x: WIDTH - 0.5,
             y: HEIGHT / 2.0,
