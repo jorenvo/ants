@@ -70,10 +70,10 @@ impl EntityStore {
                 }
             }
 
-            if !results.is_empty() {
-                Some(results)
-            } else {
+            if results.is_empty() {
                 None
+            } else {
+                Some(results)
             }
         } else {
             None

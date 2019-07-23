@@ -21,9 +21,9 @@ pub struct Game {
 impl Game {
     pub fn init(entity_store: EntityStore, width: f64, height: f64) -> Self {
         Self {
-            width: width,
-            height: height,
-            entity_store: entity_store,
+            width,
+            height,
+            entity_store,
         }
     }
 
@@ -32,10 +32,10 @@ impl Game {
     }
 
     fn pos_can_be_occupied(&self, pos: &PositionComponent) -> bool {
-        if !self.pos_is_in_bounds(pos) {
-            false
-        } else {
+        if self.pos_is_in_bounds(pos) {
             !self.entity_store.pos_is_impenetrable(pos)
+        } else {
+            false
         }
     }
 
@@ -60,8 +60,8 @@ impl Game {
     ) -> Option<Vec<DirectionComponent>> {
         let mut directions = vec![(1, 0), (-1, 0), (0, 1), (0, -1)];
         let diagonals = [1, -1];
-        for i in diagonals.iter() {
-            for j in diagonals.iter() {
+        for i in &diagonals {
+            for j in &diagonals {
                 directions.push((*i, *j));
             }
         }
@@ -69,8 +69,8 @@ impl Game {
         let positions = directions
             .iter()
             .map(|d| PositionComponent {
-                x: pos.x + d.0 as f64,
-                y: pos.y + d.1 as f64,
+                x: pos.x + f64::from(d.0),
+                y: pos.y + f64::from(d.1),
             })
             .filter(|p| self.pos_can_be_occupied(&p));
 
@@ -91,12 +91,12 @@ impl Game {
             }
         }
 
-        if strength_to_dir.len() >= 1 {
+        if strength_to_dir.is_empty() {
+            None
+        } else {
             // desc sort
             strength_to_dir.sort_unstable_by(|a, b| b.0.partial_cmp(&a.0).unwrap());
             Some(strength_to_dir.into_iter().map(|a| a.1).collect())
-        } else {
-            None
         }
     }
 
@@ -124,9 +124,7 @@ impl Game {
                     y: pos.y + dir.y,
                 };
 
-                let rand: f32 = RNG.with(|rng| (*rng.borrow_mut()).gen());
-                let is_adventurous = rand > 0.75;
-                if !self.entity_store.in_short_memory(ant_id, &new_pos) && is_adventurous {
+                if !self.entity_store.in_short_memory(ant_id, &new_pos) {
                     return Some(dir);
                 }
             }
@@ -357,7 +355,7 @@ impl Game {
                         self.increase_pheromone_strength_at(
                             &ant_pos,
                             &PheromoneType::Food,
-                            &IntensityComponent { strength: strength },
+                            &IntensityComponent { strength },
                         );
                     }
                     PheromoneType::Base => {
@@ -374,7 +372,7 @@ impl Game {
                         self.increase_pheromone_strength_at(
                             &ant_pos,
                             &PheromoneType::Base,
-                            &IntensityComponent { strength: strength },
+                            &IntensityComponent { strength },
                         );
                     }
                 }
@@ -386,7 +384,7 @@ impl Game {
         let mut new_positions: Vec<(EntityIndex, PositionComponent)> = vec![];
         let mut new_adventurous: Vec<EntityIndex> = vec![];
 
-        for (ant_id, _) in &self.entity_store.ants {
+        for ant_id in self.entity_store.ants.keys() {
             let pos = self.entity_store.get_position(ant_id).unwrap();
 
             if self.entity_store.builders.get(&ant_id).is_some() {
@@ -421,7 +419,7 @@ impl Game {
         }
 
         let mut depleted_adventurous: Vec<EntityIndex> = vec![];
-        for (ant_id, adventurous) in self.entity_store.adventurous.iter_mut() {
+        for (ant_id, adventurous) in &mut self.entity_store.adventurous {
             adventurous.ticks_left -= 1;
 
             if adventurous.ticks_left == 0 {
@@ -442,7 +440,7 @@ impl Game {
 
     fn pheromones(&mut self) {
         let mut to_decrement = Vec::new();
-        for (id, _intensity) in self.entity_store.intensities.iter() {
+        for id in self.entity_store.intensities.keys() {
             let pos = self.entity_store.get_position(&id).unwrap();
             if self
                 .entity_store
@@ -481,12 +479,12 @@ impl Game {
             index = self.entity_store.create_entity(&EntityType::Wall);
             y = if i == 0 || i == 4 { 1.5 } else { 0.5 };
             self.entity_store
-                .update_position(&index, &PositionComponent { x: i as f64, y: y });
+                .update_position(&index, &PositionComponent { x: f64::from(i), y });
 
             index = self.entity_store.create_entity(&EntityType::Wall);
             y = if i == 0 || i == 4 { 3.5 } else { 4.5 };
             self.entity_store
-                .update_position(&index, &PositionComponent { x: i as f64, y: y })
+                .update_position(&index, &PositionComponent { x: f64::from(i), y })
         }
 
         // corners
@@ -534,8 +532,8 @@ impl fmt::Display for Game {
         // writeln!(f, "intensities: {:#?}", self.entity_store.intensities)?;
         // writeln!(f, "----------")?;
 
-        let integer_width = self.width.round() as u64;
-        let integer_height = self.height.round() as u64;
+        let integer_width = self.width.round() as u32;
+        let integer_height = self.height.round() as u32;
         let separator = "|".to_owned()
             + &(0..integer_width)
                 .map(|_| "-----------|")
@@ -552,8 +550,8 @@ impl fmt::Display for Game {
                 let mut cell_value_row_2: String = "           ".to_string();
                 let mut cell_value_row_3: String = "           ".to_string();
                 let pos = PositionComponent {
-                    x: col as f64,
-                    y: row as f64,
+                    x: f64::from(col),
+                    y: f64::from(row),
                 };
 
                 if let Some(ids) = self.entity_store.get_entities_at(&pos) {

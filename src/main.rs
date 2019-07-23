@@ -1,5 +1,11 @@
 #![deny(clippy::pedantic)]
-#![allow(clippy::cast_sign_loss, clippy::cast_possible_wrap)]
+#![allow(
+    clippy::cast_sign_loss,
+    clippy::cast_possible_wrap,
+    clippy::cast_possible_truncation,
+    clippy::non_ascii_literal,
+    clippy::trivially_copy_pass_by_ref  // todo remove this
+)]
 extern crate clap;
 extern crate rand;
 
@@ -34,19 +40,20 @@ fn main() {
 
     let args = args();
     let mut game = Game::init(EntityStore::default(), WIDTH, HEIGHT);
+    let mut index;
 
     for i in 0..50 {
-        let index = game.entity_store.create_entity(&EntityType::Ant);
+        index = game.entity_store.create_entity(&EntityType::Ant);
         game.entity_store.update_position(
             &index,
             &PositionComponent {
-                x: (0.5 + i as f64) % WIDTH,
+                x: (0.5 + f64::from(i)) % WIDTH,
                 y: HEIGHT / 2.0,
             },
         );
     }
 
-    let index = game.entity_store.create_entity(&EntityType::Base);
+    index = game.entity_store.create_entity(&EntityType::Base);
     game.entity_store.update_position(
         &index,
         &PositionComponent {
@@ -55,7 +62,7 @@ fn main() {
         },
     );
 
-    let index = game.entity_store.create_entity(&EntityType::Sugar);
+    index = game.entity_store.create_entity(&EntityType::Sugar);
     game.entity_store.update_position(
         &index,
         &PositionComponent {

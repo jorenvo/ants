@@ -3,6 +3,7 @@ use crate::entity_store::PheromoneGenerationNr;
 use crate::utils::*;
 use std::cmp::Ordering;
 use std::collections::{HashSet, VecDeque};
+use std::hash::{Hash, Hasher};
 
 #[derive(Clone, Debug)]
 pub struct PositionComponent {
@@ -42,7 +43,7 @@ impl Ord for PositionComponent {
     }
 }
 
-#[derive(Clone, Debug, Default, Hash)]
+#[derive(Clone, Debug, Default)]
 pub struct CoarsePositionComponent {
     pub x: u64,
     pub y: u64,
@@ -76,7 +77,7 @@ impl Ord for CoarsePositionComponent {
 
 impl From<PositionComponent> for CoarsePositionComponent {
     fn from(pos: PositionComponent) -> Self {
-        CoarsePositionComponent {
+        Self {
             x: pos.x.floor() as u64,
             y: pos.y.floor() as u64,
         }
@@ -85,10 +86,17 @@ impl From<PositionComponent> for CoarsePositionComponent {
 
 impl From<&PositionComponent> for CoarsePositionComponent {
     fn from(pos: &PositionComponent) -> Self {
-        CoarsePositionComponent {
+        Self {
             x: pos.x.floor() as u64,
             y: pos.y.floor() as u64,
         }
+    }
+}
+
+impl Hash for CoarsePositionComponent {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.x.hash(state);
+        self.y.hash(state);
     }
 }
 
@@ -139,7 +147,7 @@ pub struct ShortMemory {
 
 impl Default for ShortMemory {
     fn default() -> Self {
-        ShortMemory {
+        Self {
             pos: HashSet::new(),
             pos_queue: VecDeque::new(),
             size: 16,
