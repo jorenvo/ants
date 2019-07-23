@@ -2,6 +2,7 @@ Todo
 ----
 - Check all .clone() calls and derive Copy where it makes sense, also get rid of &
 - Remove pheromone_generation
+- integration tests that check if shortest path has been found
 
 Pre-commit hook
 ---------------

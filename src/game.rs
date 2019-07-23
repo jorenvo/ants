@@ -1,6 +1,7 @@
 use crate::components::*;
 use crate::entities::*;
 use crate::entity_store::*;
+use crate::rand::Rng;
 use colored::*;
 use rand::prelude::SeedableRng;
 use rand_distr::{Distribution, Normal};
@@ -111,10 +112,6 @@ impl Game {
                 let new_angle = dir.y.atan2(dir.x).abs();
                 let current_angle = direction.y.atan2(direction.x).abs();
                 let angle_diff = (new_angle - current_angle).abs();
-                println!(
-                    "({}, {}) (angle: {}), ({}, {}) (angle: {}) = {}",
-                    direction.x, direction.y, current_angle, dir.x, dir.y, new_angle, angle_diff
-                );
 
                 // only allow 90° (PI / 2) turns or less
                 if angle_diff > PI / 1.8 {
@@ -126,10 +123,6 @@ impl Game {
                     y: pos.y + dir.y,
                 };
                 if !self.entity_store.in_short_memory(ant_id, &new_pos) {
-                    println!(
-                        "going to pheromone at {:?} at angle {} ({:?} -> {:?})",
-                        new_pos, angle_diff, direction, dir
-                    );
                     return Some(dir);
                 }
             }
@@ -145,8 +138,13 @@ impl Game {
         direction: &DirectionComponent,
     ) -> DirectionComponent {
         let mut direction = direction.clone();
+        let is_adventurous: f32 = RNG.with(|rng| (*rng.borrow_mut()).gen());
+        let is_adventurous: bool = is_adventurous > 0.95;
+        if is_adventurous {
+            println!("ant {} decides to be adventurous!", ant_id);
+        }
 
-        if self.entity_store.carrying_food.get(&ant_id).is_none() {
+        if !is_adventurous && self.entity_store.carrying_food.get(&ant_id).is_none() {
             if let Some(dir) = self.dir_to_strongest_adjecent_pheromone(
                 ant_id,
                 pos,
@@ -157,7 +155,7 @@ impl Game {
             }
         }
 
-        if self.entity_store.carrying_food.get(&ant_id).is_some() {
+        if !is_adventurous && self.entity_store.carrying_food.get(&ant_id).is_some() {
             if let Some(dir) = self.dir_to_strongest_adjecent_pheromone(
                 ant_id,
                 pos,
@@ -538,8 +536,6 @@ impl fmt::Display for Game {
             writeln!(f, "{}|", row_3)?;
             writeln!(f, "{}", separator)?;
         }
-
-        writeln!(f, "")?;
 
         Ok(())
     }
