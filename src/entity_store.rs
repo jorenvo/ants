@@ -212,12 +212,12 @@ impl EntityStore {
                 self.pheromones.insert(index, PheromoneEntity {});
             }
             EntityType::Sugar => {
-                self.update_position(&index, &PositionComponent { x: 4.5, y: 2.5 });
+                self.update_position(&index, &PositionComponent::default());
                 self.edibles.insert(index, EdibleComponent::default());
                 self.sugars.insert(index, SugarEntity {});
             }
             EntityType::Base => {
-                self.update_position(&index, &PositionComponent { x: 0.5, y: 2.5 });
+                self.update_position(&index, &PositionComponent::default());
                 self.bases.insert(index, BaseEntity {});
             }
             EntityType::Wall => {

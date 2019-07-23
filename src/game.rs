@@ -123,7 +123,10 @@ impl Game {
                     x: pos.x + dir.x,
                     y: pos.y + dir.y,
                 };
-                if !self.entity_store.in_short_memory(ant_id, &new_pos) {
+
+                let rand: f32 = RNG.with(|rng| (*rng.borrow_mut()).gen());
+                let is_adventurous = rand > 0.75;
+                if !self.entity_store.in_short_memory(ant_id, &new_pos) && is_adventurous {
                     return Some(dir);
                 }
             }
@@ -140,6 +143,7 @@ impl Game {
     ) -> DirectionComponent {
         let mut direction = direction.clone();
         let is_adventurous = self.entity_store.adventurous.get(&ant_id).is_some();
+        assert!(!is_adventurous);
         let allow_sharp_turns = self
             .entity_store
             .get_entities_with_type_at(pos, &EntityType::Sugar)
@@ -149,7 +153,7 @@ impl Game {
                 .get_entities_with_type_at(pos, &EntityType::Base)
                 .is_some();
 
-        if !is_adventurous && self.entity_store.carrying_food.get(&ant_id).is_none() {
+        if self.entity_store.carrying_food.get(&ant_id).is_none() {
             if let Some(dir) = self.dir_to_strongest_adjecent_pheromone(
                 ant_id,
                 pos,
@@ -161,7 +165,7 @@ impl Game {
             }
         }
 
-        if !is_adventurous && self.entity_store.carrying_food.get(&ant_id).is_some() {
+        if self.entity_store.carrying_food.get(&ant_id).is_some() {
             if let Some(dir) = self.dir_to_strongest_adjecent_pheromone(
                 ant_id,
                 pos,
@@ -437,13 +441,31 @@ impl Game {
     }
 
     fn pheromones(&mut self) {
-        let mut to_remove = Vec::new();
+        let mut to_decrement = Vec::new();
+        for (id, _intensity) in self.entity_store.intensities.iter() {
+            let pos = self.entity_store.get_position(&id).unwrap();
+            if self
+                .entity_store
+                .get_entities_with_type_at(pos, &EntityType::Sugar)
+                .is_some()
+                || self
+                    .entity_store
+                    .get_entities_with_type_at(pos, &EntityType::Base)
+                    .is_some()
+            {
+                continue;
+            }
 
-        for (id, intensity) in self.entity_store.intensities.iter_mut() {
+            to_decrement.push(*id);
+        }
+
+        let mut to_remove = Vec::new();
+        for id in to_decrement {
+            let intensity = self.entity_store.intensities.get_mut(&id).unwrap();
             intensity.strength = intensity.strength.saturating_sub(1);
 
             if intensity.strength == 0 {
-                to_remove.push(*id);
+                to_remove.push(id);
             }
         }
 
@@ -618,29 +640,55 @@ mod game_tests {
         assert!(a >= b);
     }
 
-    fn init_game() -> Game {
-        let mut game = Game::init(EntityStore::default(), 5.0, 5.0);
-        game.entity_store.create_entity(&EntityType::Ant);
-        game.entity_store.create_entity(&EntityType::Base);
-        game.entity_store.create_entity(&EntityType::Sugar);
+    fn init_game(width: f64, height: f64, ants: usize) -> Game {
+        let mut game = Game::init(EntityStore::default(), width, height);
+
+        for i in 0..ants {
+            let index = game.entity_store.create_entity(&EntityType::Ant);
+            game.entity_store.update_position(
+                &index,
+                &PositionComponent {
+                    x: (0.5 + i as f64) % width,
+                    y: height / 2.0,
+                },
+            );
+        }
+
+        let index = game.entity_store.create_entity(&EntityType::Base);
+        game.entity_store.update_position(
+            &index,
+            &PositionComponent {
+                x: 0.5,
+                y: height / 2.0,
+            },
+        );
+
+        let index = game.entity_store.create_entity(&EntityType::Sugar);
+        game.entity_store.update_position(
+            &index,
+            &PositionComponent {
+                x: width - 0.5,
+                y: height / 2.0,
+            },
+        );
 
         game
     }
 
     #[test]
-    fn test_open() {
-        let mut game = init_game();
+    fn test_5x5_open() {
+        let mut game = init_game(5.0, 5.0, 1);
 
         for _ in 0..300 {
             game.tick();
         }
 
-        assert_greater_or_equal_then(game.entity_store.food_in_base, 35);
+        assert_greater_or_equal_then(game.entity_store.food_in_base, 32);
     }
 
     #[test]
-    fn test_optimal_deneubourg_walls_1_ant() {
-        let mut game = init_game();
+    fn test_5x5_optimal_deneubourg_walls_1_ant() {
+        let mut game = init_game(5.0, 5.0, 1);
         game.add_deneubourg_walls();
 
         for _ in 0..300 {
@@ -648,5 +696,16 @@ mod game_tests {
         }
 
         assert_greater_or_equal_then(game.entity_store.food_in_base, 35);
+    }
+
+    #[test]
+    fn test_10x10_open() {
+        let mut game = init_game(10.0, 10.0, 10);
+
+        for _ in 0..300 {
+            game.tick();
+        }
+
+        assert_greater_or_equal_then(game.entity_store.food_in_base, 150);
     }
 }

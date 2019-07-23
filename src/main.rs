@@ -10,6 +10,7 @@ mod game;
 mod utils;
 
 use clap::{App, Arg};
+use components::*;
 use entities::*;
 use entity_store::*;
 use game::*;
@@ -28,15 +29,40 @@ fn args() -> clap::ArgMatches<'static> {
 }
 
 fn main() {
-    let args = args();
-    let mut game = Game::init(EntityStore::default(), 5.0, 5.0);
+    const WIDTH: f64 = 10.0;
+    const HEIGHT: f64 = 10.0;
 
-    for _ in 0..1 {
-        game.entity_store.create_entity(&EntityType::Ant);
+    let args = args();
+    let mut game = Game::init(EntityStore::default(), WIDTH, HEIGHT);
+
+    for i in 0..50 {
+        let index = game.entity_store.create_entity(&EntityType::Ant);
+        game.entity_store.update_position(
+            &index,
+            &PositionComponent {
+                x: (0.5 + i as f64) % WIDTH,
+                y: HEIGHT / 2.0,
+            },
+        );
     }
 
-    game.entity_store.create_entity(&EntityType::Base);
-    game.entity_store.create_entity(&EntityType::Sugar);
+    let index = game.entity_store.create_entity(&EntityType::Base);
+    game.entity_store.update_position(
+        &index,
+        &PositionComponent {
+            x: 0.5,
+            y: HEIGHT / 2.0,
+        },
+    );
+
+    let index = game.entity_store.create_entity(&EntityType::Sugar);
+    game.entity_store.update_position(
+        &index,
+        &PositionComponent {
+            x: WIDTH - 0.5,
+            y: HEIGHT / 2.0,
+        },
+    );
 
     if args.is_present("walls") {
         game.add_deneubourg_walls();
