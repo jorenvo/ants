@@ -144,11 +144,11 @@ impl Game {
         assert!(!is_adventurous);
         let allow_sharp_turns = self
             .entity_store
-            .get_entities_with_type_at(pos, &EntityType::Sugar)
+            .get_entities_with_type_at(pos, EntityType::Sugar)
             .is_some()
             || self
                 .entity_store
-                .get_entities_with_type_at(pos, &EntityType::Base)
+                .get_entities_with_type_at(pos, EntityType::Base)
                 .is_some();
 
         if self.entity_store.carrying_food.get(&ant_id).is_none() {
@@ -203,11 +203,11 @@ impl Game {
         let carrying_food = self.entity_store.carrying_food.get(&ant_id).is_some();
         let is_base = self
             .entity_store
-            .get_entities_with_type_at(&new_pos, &EntityType::Base)
+            .get_entities_with_type_at(&new_pos, EntityType::Base)
             .is_some();
         let is_food = self
             .entity_store
-            .get_entities_with_type_at(&new_pos, &EntityType::Sugar)
+            .get_entities_with_type_at(&new_pos, EntityType::Sugar)
             .is_some();
 
         if carrying_food {
@@ -272,7 +272,7 @@ impl Game {
 
         if let Some(pheromones) = self
             .entity_store
-            .get_entities_with_type_at(&pos, &EntityType::Pheromone)
+            .get_entities_with_type_at(&pos, EntityType::Pheromone)
         {
             let pheromones: Vec<&EntityIndex> = pheromones
                 .iter()
@@ -317,7 +317,7 @@ impl Game {
     ) -> EntityIndex {
         let (intensity, generation) =
             self.merge_and_clear_pheromones(&pos, ph_type, intensity.strength);
-        let ph_id = self.entity_store.create_entity(&EntityType::Pheromone);
+        let ph_id = self.entity_store.create_entity(EntityType::Pheromone);
         self.entity_store.update_position(ph_id, &pos);
         self.entity_store.intensities.insert(ph_id, intensity);
         self.entity_store.pheromone_types.insert(ph_id, ph_type);
@@ -344,7 +344,7 @@ impl Game {
                         let ant_pos = self.entity_store.get_position(ant_id).unwrap().clone();
                         let strength = if self
                             .entity_store
-                            .get_entities_with_type_at(&ant_pos, &EntityType::Sugar)
+                            .get_entities_with_type_at(&ant_pos, EntityType::Sugar)
                             .is_some()
                         {
                             NEW_PHEROMONE_STRENGTH * 10
@@ -362,7 +362,7 @@ impl Game {
                         let ant_pos = self.entity_store.get_position(ant_id).unwrap().clone();
                         let strength = if self
                             .entity_store
-                            .get_entities_with_type_at(&ant_pos, &EntityType::Base)
+                            .get_entities_with_type_at(&ant_pos, EntityType::Base)
                             .is_some()
                         {
                             NEW_PHEROMONE_STRENGTH * 10
@@ -444,11 +444,11 @@ impl Game {
             let pos = self.entity_store.get_position(*id).unwrap();
             if self
                 .entity_store
-                .get_entities_with_type_at(pos, &EntityType::Sugar)
+                .get_entities_with_type_at(pos, EntityType::Sugar)
                 .is_some()
                 || self
                     .entity_store
-                    .get_entities_with_type_at(pos, &EntityType::Base)
+                    .get_entities_with_type_at(pos, EntityType::Base)
                     .is_some()
             {
                 continue;
@@ -476,33 +476,33 @@ impl Game {
         let mut index;
         let mut y;
         for i in 0..5 {
-            index = self.entity_store.create_entity(&EntityType::Wall);
+            index = self.entity_store.create_entity(EntityType::Wall);
             y = if i == 0 || i == 4 { 1.5 } else { 0.5 };
             self.entity_store
                 .update_position(index, &PositionComponent { x: f64::from(i), y });
 
-            index = self.entity_store.create_entity(&EntityType::Wall);
+            index = self.entity_store.create_entity(EntityType::Wall);
             y = if i == 0 || i == 4 { 3.5 } else { 4.5 };
             self.entity_store
                 .update_position(index, &PositionComponent { x: f64::from(i), y })
         }
 
         // corners
-        index = self.entity_store.create_entity(&EntityType::Wall);
+        index = self.entity_store.create_entity(EntityType::Wall);
         self.entity_store
             .update_position(index, &PositionComponent { x: 0.5, y: 0.5 });
-        index = self.entity_store.create_entity(&EntityType::Wall);
+        index = self.entity_store.create_entity(EntityType::Wall);
         self.entity_store
             .update_position(index, &PositionComponent { x: 4.5, y: 0.5 });
-        index = self.entity_store.create_entity(&EntityType::Wall);
+        index = self.entity_store.create_entity(EntityType::Wall);
         self.entity_store
             .update_position(index, &PositionComponent { x: 0.5, y: 4.5 });
-        index = self.entity_store.create_entity(&EntityType::Wall);
+        index = self.entity_store.create_entity(EntityType::Wall);
         self.entity_store
             .update_position(index, &PositionComponent { x: 4.5, y: 4.5 });
 
         // middle
-        index = self.entity_store.create_entity(&EntityType::Wall);
+        index = self.entity_store.create_entity(EntityType::Wall);
         self.entity_store
             .update_position(index, &PositionComponent { x: 2.5, y: 2.5 });
     }
@@ -642,7 +642,7 @@ mod game_tests {
         let mut game = Game::init(EntityStore::default(), width, height);
 
         for i in 0..ants {
-            let index = game.entity_store.create_entity(&EntityType::Ant);
+            let index = game.entity_store.create_entity(EntityType::Ant);
             game.entity_store.update_position(
                 index,
                 &PositionComponent {
@@ -652,7 +652,7 @@ mod game_tests {
             );
         }
 
-        let index = game.entity_store.create_entity(&EntityType::Base);
+        let index = game.entity_store.create_entity(EntityType::Base);
         game.entity_store.update_position(
             index,
             &PositionComponent {
@@ -661,7 +661,7 @@ mod game_tests {
             },
         );
 
-        let index = game.entity_store.create_entity(&EntityType::Sugar);
+        let index = game.entity_store.create_entity(EntityType::Sugar);
         game.entity_store.update_position(
             index,
             &PositionComponent {

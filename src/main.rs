@@ -42,7 +42,7 @@ fn main() {
     let mut index;
 
     for i in 0..50 {
-        index = game.entity_store.create_entity(&EntityType::Ant);
+        index = game.entity_store.create_entity(EntityType::Ant);
         game.entity_store.update_position(
             index,
             &PositionComponent {
@@ -52,7 +52,7 @@ fn main() {
         );
     }
 
-    index = game.entity_store.create_entity(&EntityType::Base);
+    index = game.entity_store.create_entity(EntityType::Base);
     game.entity_store.update_position(
         index,
         &PositionComponent {
@@ -61,7 +61,7 @@ fn main() {
         },
     );
 
-    index = game.entity_store.create_entity(&EntityType::Sugar);
+    index = game.entity_store.create_entity(EntityType::Sugar);
     game.entity_store.update_position(
         index,
         &PositionComponent {

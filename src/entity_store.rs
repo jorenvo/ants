@@ -60,12 +60,12 @@ impl EntityStore {
     pub fn get_entities_with_type_at(
         &self,
         search_pos: &PositionComponent,
-        entity_type: &EntityType,
+        entity_type: EntityType,
     ) -> Option<HashSet<EntityIndex>> {
         if let Some(ids) = self.get_entities_at(search_pos) {
             let mut results = HashSet::new();
             for id in ids {
-                if self.entity_types.get(&id).unwrap() == entity_type {
+                if self.entity_types.get(&id).unwrap() == &entity_type {
                     results.insert(*id);
                 }
             }
@@ -95,7 +95,7 @@ impl EntityStore {
         search_pos: &PositionComponent,
         pheromone_type: PheromoneType,
     ) -> Option<EntityIndex> {
-        if let Some(ph_ids) = self.get_entities_with_type_at(&search_pos, &EntityType::Pheromone) {
+        if let Some(ph_ids) = self.get_entities_with_type_at(&search_pos, EntityType::Pheromone) {
             let ph_id: Vec<EntityIndex> = ph_ids
                 .into_iter()
                 .filter(|id| self.pheromone_types.get(id).unwrap() == &pheromone_type)
@@ -199,7 +199,7 @@ impl EntityStore {
         memory.pos.clear();
     }
 
-    pub fn create_entity(&mut self, entity_type: &EntityType) -> EntityIndex {
+    pub fn create_entity(&mut self, entity_type: EntityType) -> EntityIndex {
         let index = self.get_new_index();
         match entity_type {
             EntityType::Ant => {
@@ -227,7 +227,7 @@ impl EntityStore {
                 self.walls.insert(index, WallEntity {});
             }
         }
-        self.entity_types.insert(index, entity_type.clone());
+        self.entity_types.insert(index, entity_type);
 
         index
     }
